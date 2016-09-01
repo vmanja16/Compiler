@@ -1,3 +1,7 @@
+This is compiler project for the language "MICRO" specified by the grammar in grammar.txt: 
+
+
+
 CAPS : CAPS is a token (terminal) made up of one or more characters.  
 small case symbols are non-terminals.
 
