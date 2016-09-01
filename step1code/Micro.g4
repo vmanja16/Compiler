@@ -40,7 +40,7 @@ decl
 /* Global String Declaration */
 
 string_decl
-       : STRING id ':=' str ';';
+       : 'STRING' id ':=' str ';';
 
 str
        : STRINGLITERAL;
@@ -70,7 +70,7 @@ param_decl_list
 param_decl
       : var_type id;
 
-param_decl_tail:
+param_decl_tail
 	  : ',' param_decl param_decl_tail | ; // empty
 
 /* Function Declarations */
@@ -165,26 +165,23 @@ do_while_stmt
       : 'DO' decl stmt_list 'WHILE' '(' cond ')' ';';
 
 IDENTIFIER
-      : [A-Za-z][A-Za-z0-9]{0,30}
+      : [A-Za-z][A-Za-z0-9]*;
 
 
 INTLITERAL
-      : [0-9]+ 
+      : [0-9]+; 
 
 FLOATLITERAL
-      : [0-9]*'.'[0-9]+ 
+      : [0-9]*'.'[0-9]+; 
       
-STRINGLITERAL  (Max 80 characters including '\0')
-      : '"'["]      
-      any sequence of character except '"' 
-            between '"' and '"' 
-            ex) "Hello world!" , "***********" , "this is a string"
+STRINGLITERAL 
+      : '"'(~'"')*'"';      
 
-COMMENT:
-      Starts with "--" and lasts till the end of line
-      ex) -- this is a comment
-      ex) -- any thing after the "--" is ignored 
+COMMENT
+      : ('--'(~'\n')*'\n') -> skip; 
 
+WS
+      : (' ' | '\t' | '\n' | '\r' )+ -> skip;
 
 OPERATOR
     : ':='
