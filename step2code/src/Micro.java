@@ -12,16 +12,25 @@ public class Micro {
     Vocabulary vocab = lexer.getVocabulary();
 
     CommonTokenStream tokens = new CommonTokenStream(lexer);
-    tokens.fill(); 
+    
+    MicroParser parser = new MicroParser(tokens);
+
+    ANTLRErrorStrategy es = new CustomErrorStrategy();
+    parser.setErrorHandler(es);
+
+    
+    
+    
+    /*    
 
     for (Token token : tokens.getTokens()){
       if (token.getType() != MicroLexer.EOF){
         System.out.println("Token Type: " + vocab.getSymbolicName(token.getType()));
         System.out.println("Value: " + token.getText() );   
       }
-    }
+    } 
  
-
+*/
   } // end main
 
 } // end class
