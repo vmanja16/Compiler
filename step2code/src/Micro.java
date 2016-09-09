@@ -1,5 +1,7 @@
 import org.antlr.v4.runtime.*;
+//import org.antlr.v4.tree;
 import java.util.*;
+import java.lang.*;
 
 public class Micro {
 
@@ -9,28 +11,24 @@ public class Micro {
 
     MicroLexer lexer = new MicroLexer(file_stream); 
 
-    Vocabulary vocab = lexer.getVocabulary();
-
     CommonTokenStream tokens = new CommonTokenStream(lexer);
     
     MicroParser parser = new MicroParser(tokens);
-
-    ANTLRErrorStrategy es = new CustomErrorStrategy();
+    
+    ANTLRErrorStrategy es = new MicroErrorStrategy();
     parser.setErrorHandler(es);
 
-    
-    
-    
-    /*    
+    try 
+    {
+      parser.program();
+      System.out.println("Accepted");
+    }
+    catch (Exception e){
+      System.out.println("Not Accepted");
+    }
 
-    for (Token token : tokens.getTokens()){
-      if (token.getType() != MicroLexer.EOF){
-        System.out.println("Token Type: " + vocab.getSymbolicName(token.getType()));
-        System.out.println("Value: " + token.getText() );   
-      }
-    } 
- 
-*/
+
+    
   } // end main
 
 } // end class
