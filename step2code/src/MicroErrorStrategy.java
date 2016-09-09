@@ -5,9 +5,8 @@ import java.lang.*;
 
 class MicroErrorStrategy extends DefaultErrorStrategy{
 
-  public MicroErrorStrategy(){
-    super();
-  }
+  public MicroErrorStrategy(){}
+  
   @Override
   public void reportError(Parser recognizer, RecognitionException e){
 	throw e;
