@@ -5,13 +5,11 @@ import java.lang.*;
 
 class MicroErrorStrategy extends DefaultErrorStrategy{
 
-public MicroErrorStrategy(){
-	super();
-}
-
-public void reportError(Parser recognizer,
-               RecognitionException e){
+  public MicroErrorStrategy(){
+    super();
+  }
+  @Override
+  public void reportError(Parser recognizer, RecognitionException e){
 	throw e;
-}
-
+  }
 }
