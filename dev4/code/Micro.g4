@@ -15,11 +15,8 @@ program: 'PROGRAM' id
          ;
          
 id: IDENTIFIER;
-
 pgm_body: decl func_declarations; 
-
 decl: string_decl decl | var_decl decl | ; //empty
-
 
 /* Global String Declaration */
 
@@ -31,7 +28,6 @@ string_decl: 'STRING' id ':=' str ';'
 ;
 
 str: STRINGLITERAL;
-
 
 /* Variable Declaration */
 
@@ -61,7 +57,6 @@ param_decl: var_type id {
 }
 ;
 param_decl_tail: ',' param_decl param_decl_tail | ; // empty
-
 
 /* Function Declarations */
 
