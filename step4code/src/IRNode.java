@@ -15,7 +15,7 @@ class IRNode extends Object{
 		String one, two;
 		if (op1 == null){one = "";}else{one = op1 + " ";}
 		if (op2 == null){two = "";}else{two = op2 + " ";}
-		System.out.println("; " + opcode + " " + one + two + result);
+		System.out.println(";" + opcode + " " + one + two + result);
 	}
 
 
