@@ -90,8 +90,20 @@ base_stmt : assign_stmt | read_stmt | write_stmt | return_stmt;
 
 assign_stmt: assign_expr ';';
 assign_expr: id ':=' expr;
-read_stmt: 'READ' '(' id_list ')' ';';
-write_stmt: 'WRITE' '(' id_list
+read_stmt: 'READ' '(' id_list ')' ';'
+{
+  String[] idList = $id_list.text.split(",");
+  String opcode = null;
+  for (String id : idList){
+    Symbol symbol = tree.current_scope.getSymbol(id);
+    if (symbol.type.equals("INT")){opcode = "READI";}
+    else if (symbol.type.equals("FLOAT")){opcode = "READF";}
+    IRNode ir_node = new IRNode(opcode, null, null, id);
+    ir_list.addLast(ir_node); 
+  }
+}
+;
+write_stmt: 'WRITE' '(' id_list ')' ';'
 {
   String[] idList = $id_list.text.split(",");
   String opcode = null;
@@ -103,7 +115,6 @@ write_stmt: 'WRITE' '(' id_list
     ir_list.addLast(ir_node); 
   }
 }
- ')' ';'
 ;
 return_stmt : 'RETURN' expr ';';
 
