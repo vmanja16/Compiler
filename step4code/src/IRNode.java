@@ -19,6 +19,17 @@ class IRNode extends Object{
 	}
 
 
+	public TinyNode toTiny(){
+		switch(opcode){
+			case("WRITEI"):
+				return new TinyNode("sys writei", result, null);	
+			case("WRITEF"):
+				return new TinyNode("sys writer", result, null);
+			default: return null;
+		}
+	}
+
+
 
 
 

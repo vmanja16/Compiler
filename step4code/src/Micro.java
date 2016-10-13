@@ -1,5 +1,5 @@
 import org.antlr.v4.runtime.*;
-//import org.antlr.v4.tree;
+import org.antlr.v4.runtime.tree.*;
 import java.util.*;
 import java.lang.*;
 
@@ -20,7 +20,16 @@ public class Micro {
 
     try 
     {
-      parser.program();
+      ParseTree parse_tree = parser.program();
+      SymbolTableTree symbol_table_tree = parser.tree;
+
+      parser.ir_list.print();
+
+      ParseTreeWalker parse_tree_waklker = new ParseTreeWalker();
+      MicroRuleListener listener = new MicroRuleListener(symbol_table_tree);
+      
+      parse_tree_waklker.walk(listener, parse_tree);
+      
     }
     catch (Exception e){
       System.out.println(e);
