@@ -1,9 +1,11 @@
+import java.lang.*;
+import java.util.*;
 class IRNode extends Object{
 	public String opcode;
 	public String op1;
 	public String op2;
 	public String result;
-
+	private HashMap<String, String> ir_tiny_map;
 
 	public IRNode(String opcode, String op1, String op2, String result){
 		this.opcode = opcode;
@@ -18,7 +20,6 @@ class IRNode extends Object{
 		System.out.println(";" + opcode + " " + one + two + result);
 	}
 
-
 	public TinyNode toTiny(){
 		switch(opcode){
 			case("WRITEI"):
@@ -29,9 +30,4 @@ class IRNode extends Object{
 		}
 	}
 
-
-
-
-
-
-}
+} // endclass

@@ -5,12 +5,13 @@ grammar Micro;
       public SymbolTableTree tree = new SymbolTableTree();
       public int block_number = 0;
       public IRList ir_list = new IRList();  
+      public AbstractSyntaxTree abs;
 }
 program: 'PROGRAM' id 
          'BEGIN' pgm_body 
          'END' {
                  //tree.print();
-                 ir_list.print();
+                 //ir_list.print();
                }
          ;
          
@@ -84,7 +85,10 @@ base_stmt : assign_stmt | read_stmt | write_stmt | return_stmt;
 /* Basic Statements */
 
 assign_stmt: assign_expr ';';
-assign_expr: id ':=' expr;
+assign_expr: id {abs = new AbstractSyntaxTree(tree.current_scope.getSymbol($id.text));}
+':=' expr {abs.print();}
+;
+
 read_stmt: 'READ' '(' id_list ')' ';'
 {
   String[] idList = $id_list.text.split(",");
@@ -120,12 +124,23 @@ expr_prefix: expr_prefix factor addop | ; // empty
 factor: factor_prefix postfix_expr;
 factor_prefix: factor_prefix postfix_expr mulop | ; //empty
 postfix_expr: primary | call_expr;
+
 call_expr: id '(' expr_list ')';
 expr_list: expr expr_list_tail | ; // empty
 expr_list_tail: ',' expr expr_list_tail | ; // empty
-primary: '(' expr ')' | id | INTLITERAL | FLOATLITERAL;
-addop: '+' | '-';
-mulop: '*' | '/';
+
+primary: '('   {abs.add_operator("(");}
+  expr ')'     {abs.close_expr();} | 
+  id           {abs.add_operand($id.text);}| 
+  INTLITERAL   {abs.add_operand($INTLITERAL.text);}| 
+  FLOATLITERAL {abs.add_operand($FLOATLITERAL.text);}
+  ;
+addop: '+'{abs.add_operator("+");} | 
+       '-'{abs.add_operator("-");}
+       ;
+mulop: '*'{abs.add_operator("*");} | 
+       '/'{abs.add_operator("/");}
+       ;
 
 /* Complex Statements and Condition */ 
 
