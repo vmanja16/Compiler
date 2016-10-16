@@ -8,7 +8,7 @@ class AbstractSyntaxTree{
 	public Symbol lhs;	
 	private static final Map<String, Integer> precedence_map = Collections.unmodifiableMap(
 		new HashMap<String, Integer>() {{
-			put("(", 0);
+			put("(", 3);
 			put("+", 1);
 			put("-", 1);
 			put("*", 2);
@@ -23,7 +23,7 @@ class AbstractSyntaxTree{
 	}
 
 /** 
-				BUILD METHODS
+				BUILD METHODSs
 */			
 	public void add_operand(String operand){
 		ExpressionNode node = new ExpressionNode(operand);
@@ -31,7 +31,7 @@ class AbstractSyntaxTree{
 	}
 	public void add_operator(String operation){
 		if (!operator_stack.isEmpty()){
-		    while(getPrecedence((String)operator_stack.getLast()) >= getPrecedence(operation)){
+		    while(getPrecedence(operation) <= getPrecedence((String)operator_stack.getLast()) ){
 	            build_node_from_stack();
 	            if(operator_stack.isEmpty()){break;}
 	        }
