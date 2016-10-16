@@ -86,7 +86,7 @@ base_stmt : assign_stmt | read_stmt | write_stmt | return_stmt;
 
 assign_stmt: assign_expr ';';
 assign_expr: id {abs = new AbstractSyntaxTree(tree.current_scope.getSymbol($id.text));}
-':=' expr {abs.print();}
+':=' expr {abs.end();abs.print();}
 ;
 
 read_stmt: 'READ' '(' id_list ')' ';'
@@ -129,7 +129,7 @@ call_expr: id '(' expr_list ')';
 expr_list: expr expr_list_tail | ; // empty
 expr_list_tail: ',' expr expr_list_tail | ; // empty
 
-primary: '('   {abs.add_operator("(");}
+primary: '('   {abs.open_expr();}
   expr ')'     {abs.close_expr();} | 
   id           {abs.add_operand($id.text);}| 
   INTLITERAL   {abs.add_operand($INTLITERAL.text);}| 

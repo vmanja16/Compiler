@@ -15,9 +15,8 @@ class ExpressionNode{
 	}
 
 	public void print(){
-		if (op1 != null){op1.print();}
-		System.out.println(value);
-		if (op2 != null){op2.print();}
+		if (op1 != null){System.out.print("[");op1.print();}
+		System.out.print(value+" ");
+		if (op2 != null){op2.print();System.out.print("]");}
 	}
-
 }
