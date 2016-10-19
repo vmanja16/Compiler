@@ -6,12 +6,13 @@ grammar Micro;
       public int block_number = 0;
       public IRList ir_list = new IRList();  
       public AbstractSyntaxTree abs;
+      public int reg_number = 0;
 }
 program: 'PROGRAM' id 
          'BEGIN' pgm_body 
          'END' {
                  //tree.print();
-                 //ir_list.print();
+                 ir_list.print();
                }
          ;
          
@@ -85,8 +86,8 @@ base_stmt : assign_stmt | read_stmt | write_stmt | return_stmt;
 /* Basic Statements */
 
 assign_stmt: assign_expr ';';
-assign_expr: id {abs = new AbstractSyntaxTree(tree.current_scope.getSymbol($id.text));}
-':=' expr {abs.end();abs.print();}
+assign_expr: id {abs = new AbstractSyntaxTree(tree.current_scope.getSymbol($id.text), reg_number, tree.current_scope);}
+':=' expr {abs.end();ir_list.addAll(abs.ir_list); reg_number = abs.getTempCount();}
 ;
 
 read_stmt: 'READ' '(' id_list ')' ';'
