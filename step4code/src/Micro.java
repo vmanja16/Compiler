@@ -21,14 +21,9 @@ public class Micro {
   //  try 
    // {
       ParseTree parse_tree = parser.program();
-      SymbolTableTree symbol_table_tree = parser.tree;
-
-      //parser.ir_list.print();
-
-      ParseTreeWalker parse_tree_waklker = new ParseTreeWalker();
-      MicroRuleListener listener = new MicroRuleListener(symbol_table_tree);
-      
-      parse_tree_waklker.walk(listener, parse_tree);
+      parser.ir_list.print();
+      TinyList tiny_list = (TinyList)parser.ir_list.toTiny();
+      tiny_list.print();
   /*    
     }
     catch (Exception e){

@@ -13,11 +13,11 @@ class IRList extends LinkedList{
 		}
 	}
 
-	public LinkedList toTiny(){
-		LinkedList tiny_list = new LinkedList();
+	public TinyList toTiny(){
+		TinyList tiny_list = new TinyList();
 		Object[] ir_array= toArray();
 		for(Object node : ir_array){
-			tiny_list.addLast(((IRNode)node).toTiny());
+			tiny_list.addAll( ( (IRNode)node).toTiny());
 		}	
 		return tiny_list;
 	}

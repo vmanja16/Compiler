@@ -12,7 +12,7 @@ program: 'PROGRAM' id
          'BEGIN' pgm_body 
          'END' {
                  //tree.print();
-                 ir_list.print();
+                 //ir_list.print();
                }
          ;
          
@@ -38,6 +38,7 @@ var_decl: var_type id_list ';'
   String[] strList = $id_list.text.split(",");
   for (String id : strList){
     Symbol symbol = new Symbol(id, $var_type.text, "0");
+    ir_list.addLast(new IRNode("var", null, null, id));
     tree.current_scope.add_symbol(symbol);
   }
 }
@@ -111,6 +112,7 @@ write_stmt: 'WRITE' '(' id_list ')' ';'
     Symbol symbol = tree.current_scope.getSymbol(id);
     if (symbol.type.equals("INT")){opcode = "WRITEI";}
     else if (symbol.type.equals("FLOAT")){opcode = "WRITEF";}
+    else if (symbol.type.equals("STRING")){opcode = "WRITES";}
     IRNode ir_node = new IRNode(opcode, null, null, id);
     ir_list.addLast(ir_node); 
   }

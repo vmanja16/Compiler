@@ -9,5 +9,12 @@ class TinyNode{
 		// op2 may be null!
 	}
 
+	public void print(){
+		String o1, o2;
+		if (op1 == null){o1 = "";}else{o1 = op1;}
+		if (op2 == null){o2 = "";}else{o2 = op2;}
+		System.out.println(opcode + " " + o1 + " " + o2);
+	}
+
 
 }
