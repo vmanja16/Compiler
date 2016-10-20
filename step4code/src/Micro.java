@@ -24,6 +24,7 @@ public class Micro {
       parser.ir_list.print();
       TinyList tiny_list = (TinyList)parser.ir_list.toTiny();
       tiny_list.print();
+      System.out.println("sys halt");
   /*    
     }
     catch (Exception e){
