@@ -155,7 +155,10 @@ if_stmt: 'IF'
   ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*block_number)));
   if_label = 2*block_number + 1;
 } 
-'(' cond ')' decl stmt_list else_part 'ENDIF' {tree.exitScope();};
+'(' cond ')' decl stmt_list{ir_list.addLast(new IRNode("JUMP",null,null,"$T"+if_label));}
+else_part 'ENDIF' {
+	ir_list.addLast(new IRNode("LABEL",null,null, "label"+if_label));
+	tree.exitScope();};
 
 else_part: 'ELSIF' {tree.enterScope("BLOCK", ++block_number); new_node.result = "$T"+(block_number*2+1);
                     ir_list.addLast(new_node);
