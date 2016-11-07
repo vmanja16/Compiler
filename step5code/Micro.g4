@@ -4,9 +4,12 @@ grammar Micro;
 @members {
       public SymbolTableTree tree = new SymbolTableTree();
       public int block_number = 0;
+      public int label_number = 0;
       public IRList ir_list = new IRList();  
       public AbstractSyntaxTree abs;
       public int reg_number = 0;
+      public AbstractSyntaxTree [] expressionPair;
+      public IRNode new_node;
 }
 program: 'PROGRAM' id 
          'BEGIN' pgm_body 
@@ -163,45 +166,51 @@ decl stmt_list
 }
 else_part | ; //empty
 
-cond: expr compop expr | 'TRUE' | 'FALSE';
-compop: '<' | '>' | '=' | '!=' | '<=' | '>=';
+cond: {new_node = new IRNode(null, null, null, null);
+      abs = new AbstractSyntaxTree($cond.getText, reg_number, tree.current_scope);
+    expr 
+      {abs.end();ir_list.addAll(abs.ir_list); reg_number = abs.getTempCount();
+       new_node.op1 = } 
+    
+    compop 
+      {abs = new AbstractSyntaxTree($cond.getText, reg_number, tree.current_scope);}
+    expr
+      {abs.end();ir_list.addAll(abs.ir_list); reg_number = abs.getTempCount();}  
+| 'TRUE' | 'FALSE';
+
+compop: 
+'<'  {new_node.setCom("<");}  | 
+'>'  {new_node.setCom(">");}  | 
+'='  {new_node.setCom("=");}  | 
+'!=' {new_node.setCom("!=");} |
+'<=' {new_node.setCom("<=");} |
+'>=' {new_node.setCom(">=");}
+  ;
 
 do_while_stmt: 'DO' 
 {
   tree.enterScope("BLOCK", ++block_number);
+  ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*block_number)));
 }
 decl stmt_list 'WHILE' '(' cond ')' ';' 
 {
-  tree.exitScope();
+  ir_list.addLast(new IRNode("JUMP", null, null, "label"+(2*block_number)));
+  ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*block_number+1)));
+  tree.exitScope();  
 };
 
 /* ----------------------   LEXER RULES! ---------------------- */
-
 KEYWORD
        : 'PROGRAM'| 'BEGIN'| 'END'| 'FUNCTION'| 'READ'| 'WRITE'| 'IF'
        | 'ELSIF'| 'ENDIF'| 'DO'| 'WHILE'| 'CONTINUE'| 'BREAK'| 'RETURN'
        | 'INT'| 'VOID'| 'STRING'| 'FLOAT'| 'TRUE'| 'FALSE'
          ;
-
-IDENTIFIER
-      : [A-Za-z][A-Za-z0-9]*;
-
-
-INTLITERAL
-      : [0-9]+; 
-
-FLOATLITERAL
-      : [0-9]*'.'[0-9]+; 
-      
-STRINGLITERAL 
-      : '"'(~'"')*'"';      
-
-COMMENT
-      : ('--'(~'\n')*'\n') -> skip; 
-
-WS
-      : (' ' | '\t' | '\n' | '\r' )+ -> skip;
-
+IDENTIFIER: [A-Za-z][A-Za-z0-9]*;
+INTLITERAL: [0-9]+; 
+FLOATLITERAL: [0-9]*'.'[0-9]+; 
+STRINGLITERAL : '"'(~'"')*'"';      
+COMMENT: ('--'(~'\n')*'\n') -> skip; 
+WS: (' ' | '\t' | '\n' | '\r' )+ -> skip;
 OPERATOR
       : ':='| '+' | '-' | '*' | '/' | '=' | '!=' | '<' | '>' | '(' 
       | ')' | ';' | ',' | '<=' | '>=' 

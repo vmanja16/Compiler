@@ -10,7 +10,8 @@ class AbstractSyntaxTree{
 	private Integer temp_count;
 	public String type;
 	public SymbolTable table;
-		
+	public String input;
+
 	private static final Map<String, Integer> precedence_map = Collections.unmodifiableMap(
 		new HashMap<String, Integer>() {{
 			put("open", 0);
@@ -29,6 +30,28 @@ class AbstractSyntaxTree{
 		temp_count = new Integer(reg_number);
 		if (lhs.type.equals("FLOAT")){type = "F";}else{type = "I";}
 		this.table = table;
+	}
+		public AbstractSyntaxTree(String input, int reg_number, SymbolTable table){
+		this.lhs = null;
+		operator_stack = new LinkedList();
+		expression_stack = new LinkedList();
+		ir_list = new IRList();
+		root = null;
+		temp_count = new Integer(reg_number);
+		//if (lhs.type.equals("FLOAT")){type = "F";}else{type = "I";}
+		determineType(input);
+		this.table = table;
+	}
+
+	public void String determineType(){
+		// check if symbol involved
+		if input.contains('.'){type = "F"; return}
+		for (String str : input.split(" ")){
+			if (table.getSymbol(str) != null){
+				type = table.getSymbol(str).type[0]; return;
+			}
+		type = "I";
+		}
 	}
 
 /** 
@@ -87,6 +110,7 @@ class AbstractSyntaxTree{
 		}
 		updateRoot();
 		post_order(root);
+		if (lhs == null){return;}
 		ir_list.addLast(new IRNode("STORE"+type, root.value, null, lhs.name));
 		table.addTempReg(lhs.name, getTempCount());
 
