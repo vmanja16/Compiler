@@ -4,11 +4,10 @@ grammar Micro;
 @members {
       public SymbolTableTree tree = new SymbolTableTree();
       public int block_number = 0;
-      public int label_number = 0;
+      public int if_label = 0;
       public IRList ir_list = new IRList();  
       public AbstractSyntaxTree abs;
       public int reg_number = 0;
-      public AbstractSyntaxTree [] expressionPair;
       public IRNode new_node;
 }
 program: 'PROGRAM' id 
@@ -153,38 +152,53 @@ mulop: '*'{abs.add_operator("*");} |
 if_stmt: 'IF' 
 {
   tree.enterScope("BLOCK", ++block_number);
+  ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*block_number)));
+  if_label = 2*block_number + 1;
 } 
 '(' cond ')' decl stmt_list else_part 'ENDIF' {tree.exitScope();};
 
-else_part: 'ELSIF' '(' cond ')' {
-  tree.enterScope("BLOCK", ++block_number);
-}
+else_part: 'ELSIF' {tree.enterScope("BLOCK", ++block_number); new_node.result = "$T"+(block_number*2+1);
+                    ir_list.addLast(new_node);
+                    } 
+'(' cond ')' {}
+  
+  decl stmt_list 
+  {
+    tree.exitScope();
+  }
+  else_part | ; //empty
 
-decl stmt_list 
-{
-  tree.exitScope();
-}
-else_part | ; //empty
-
-cond: {new_node = new IRNode(null, null, null, null);
+cond: {
       abs = new AbstractSyntaxTree($cond.getText, reg_number, tree.current_scope);
     expr 
-      {abs.end();ir_list.addAll(abs.ir_list); reg_number = abs.getTempCount();
-       new_node.op1 = } 
+      {new_node = new IRNode(null, null, null, null);
+       abs.end();ir_list.addAll(abs.ir_list); reg_number = abs.getTempCount();
+       new_node.op1 = abs.root.value;} 
     
     compop 
       {abs = new AbstractSyntaxTree($cond.getText, reg_number, tree.current_scope);}
     expr
-      {abs.end();ir_list.addAll(abs.ir_list); reg_number = abs.getTempCount();}  
-| 'TRUE' | 'FALSE';
+      {abs.end();ir_list.addAll(abs.ir_list); reg_number = abs.getTempCount();
+       new_node.op2 = abs.root.value; new_node.result = "$T" + "label"+(2*block_number+1);}  
+| 
+'TRUE' {ir_list.addLast(new IRNode(STOREI, 0, null, "$T" + (++reg_number));
+        ir_list.addLast(new IRNode(STOREI, 1, null, "$T" + (++reg_number)); 
+        new_node = new IRNode(EQ, "$T" + reg_number, "$T" + (reg_number-1), "label"+(2*block_number+1));
+      }
+| 
+'FALSE'{ir_list.addLast(new IRNode(STOREI, 1, null, "$T" + (++reg_number));
+        ir_list.addLast(new IRNode(STOREI, 1, null, "$T" + (++reg_number)); 
+        new_node = new IRNode(EQ, "$T" + reg_number, "$T" + (reg_number-1), "label"+(2*block_number+1));
+      }
+;
 
 compop: 
-'<'  {new_node.setCom("<");}  | 
-'>'  {new_node.setCom(">");}  | 
-'='  {new_node.setCom("=");}  | 
-'!=' {new_node.setCom("!=");} |
-'<=' {new_node.setCom("<=");} |
-'>=' {new_node.setCom(">=");}
+'<'  {new_node.opcode = "GE";}  | 
+'>'  {new_node.opcode = "LE";} | 
+'='  {new_node.opcode = "NE";} | 
+'!=' {new_node.opcode = "EQ";} |
+'<=' {new_node.opcode = "GT";} |
+'>=' {new_node.opcode = "LT";}
   ;
 
 do_while_stmt: 'DO' 
