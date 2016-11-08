@@ -8,9 +8,9 @@ grammar Micro;
       public java.util.LinkedList<Integer> if_label = new java.util.LinkedList<Integer>();
       public IRList ir_list = new IRList();  
       public AbstractSyntaxTree abs;
-      public int reg_number = 0;
+      public int reg_number = 0, old_node_index = 0;;
       public IRNode new_node, extra_node;
-      int old_node_index;
+      public java.util.LinkedList<Integer> old_node_stack = new java.util.LinkedList<Integer>();
       public String tempString = IRNode.getTempPrefix();
 }
 program: 'PROGRAM' id 
@@ -158,12 +158,13 @@ if_stmt: 'IF'
           //ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*tree.current_scope.block_number)));
           if_label.push(2*tree.current_scope.block_number + 1);
         } 
-        '(' cond ')' {ir_list.addLast(new_node); old_node_index = ir_list.size()-1;}
+        '(' cond ')' {ir_list.addLast(new_node); old_node_index = ir_list.size()-1; old_node_stack.push(old_node_index);}
         decl 
         stmt_list {ir_list.addLast(new IRNode("JUMP",null,null,"label"+if_label.getFirst()));}
         else_part 
         'ENDIF' {
           	ir_list.addLast(new IRNode("LABEL",null,null, "label"+if_label.pop()));
+            old_node_stack.pop(); // Pop due to nested if statements!
           	tree.exitScope();
           }
 ;
@@ -171,20 +172,24 @@ if_stmt: 'IF'
 else_part: 
     'ELSIF' {
               tree.enterScope("BLOCK", ++block_number);
-              ir_list.replace(old_node_index, "label"+ (2*tree.current_scope.block_number));
+              // we guessed in the COND segment that the label was ENDIF, need to replace with (and add) the new ELSIF label
+              ir_list.replace(old_node_stack.pop(), "label"+ (2*tree.current_scope.block_number)); 
               ir_list.addLast(new IRNode("LABEL", null, null, "label" + (2*tree.current_scope.block_number) ));
     } 
     '(' cond ')' {
-      ir_list.addLast(new_node); old_node_index = ir_list.size()-1;
+      ir_list.addLast(new_node); old_node_index = ir_list.size()-1; old_node_stack.push(old_node_index);
     }
     
     decl 
-    stmt_list{ir_list.addLast(new IRNode("JUMP",null,null,"label"+if_label.getFirst()));} 
-    {
+    stmt_list{
+      ir_list.addLast(new IRNode("JUMP",null,null,"label"+if_label.getFirst())); 
       tree.exitScope();
     }
-    else_part |  
+    else_part 
+    |  
 ; //empty
+
+/* cond creates a "new_node" IRNode with the correct Comparison type: assumes the jump label is top of the if_label stack */
 
 cond: 
     {abs = new AbstractSyntaxTree(reg_number, tree.current_scope);}      
@@ -215,7 +220,7 @@ cond:
 ;
 
 compop: 
-  '<'  {new_node.opcode = "GE";}  | 
+  '<'  {new_node.opcode = "GE";} | 
   '>'  {new_node.opcode = "LE";} | 
   '='  {new_node.opcode = "NE";} | 
   '!=' {new_node.opcode = "EQ";} |
