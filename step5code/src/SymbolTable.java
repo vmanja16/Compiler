@@ -8,7 +8,7 @@ class SymbolTable{
     ArrayList<Symbol> symbols = new ArrayList<Symbol>();
     ArrayList<SymbolTable> tables = new ArrayList<SymbolTable>();
     public HashMap<Symbol, Integer> TempRegMap = new HashMap<Symbol, Integer>();
-    int block_number;
+    public int block_number;
 	public String scope_name;
 	public SymbolTable parent;
 	public SymbolTable(String scope_name, SymbolTable parent, int block_number){

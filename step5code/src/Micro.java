@@ -22,8 +22,8 @@ public class Micro {
    // {
       ParseTree parse_tree = parser.program();
       parser.ir_list.print();
-      TinyList tiny_list = (TinyList)parser.ir_list.toTiny();
-      tiny_list.print();
+      //TinyList tiny_list = (TinyList)parser.ir_list.toTiny();
+      //tiny_list.print();
       System.out.println("sys halt");
   /*    
     }

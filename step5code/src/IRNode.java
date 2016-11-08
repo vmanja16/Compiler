@@ -7,6 +7,9 @@ class IRNode extends Object{
 	public String result;
 	private HashMap<String, String> ir_tiny_map;
 
+	public static String getTempPrefix(){
+		return "$T";
+	}
 	public IRNode(String opcode, String op1, String op2, String result){
 		this.opcode = opcode;
 		this.op1 = op1;

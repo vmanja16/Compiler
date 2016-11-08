@@ -31,7 +31,7 @@ class AbstractSyntaxTree{
 		if (lhs.type.equals("FLOAT")){type = "F";}else{type = "I";}
 		this.table = table;
 	}
-		public AbstractSyntaxTree(String input, int reg_number, SymbolTable table){
+		public AbstractSyntaxTree(int reg_number, SymbolTable table){
 		this.lhs = null;
 		operator_stack = new LinkedList();
 		expression_stack = new LinkedList();
@@ -39,16 +39,18 @@ class AbstractSyntaxTree{
 		root = null;
 		temp_count = new Integer(reg_number);
 		//if (lhs.type.equals("FLOAT")){type = "F";}else{type = "I";}
-		determineType(input);
+		
+		//setType();
 		this.table = table;
 	}
 
-	public void String determineType(){
+	public void setType(String input ){
 		// check if symbol involved
-		if input.contains('.'){type = "F"; return}
+		if (input == null){System.out.println(" NULL INPUT!!!!");}
+		if (input.contains(".")){type = "F"; return;}
 		for (String str : input.split(" ")){
 			if (table.getSymbol(str) != null){
-				type = table.getSymbol(str).type[0]; return;
+				type = table.getSymbol(str).type.substring(0,1); return;
 			}
 		type = "I";
 		}

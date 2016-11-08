@@ -1,14 +1,16 @@
 grammar Micro;
-           
+
 /* Program */
 @members {
+
       public SymbolTableTree tree = new SymbolTableTree();
       public int block_number = 0;
-      public int if_label = 0;
+      public java.util.LinkedList<Integer> if_label = new java.util.LinkedList<Integer>();
       public IRList ir_list = new IRList();  
       public AbstractSyntaxTree abs;
       public int reg_number = 0;
       public IRNode new_node;
+      public String tempString = IRNode.getTempPrefix();
 }
 program: 'PROGRAM' id 
          'BEGIN' pgm_body 
@@ -150,48 +152,57 @@ mulop: '*'{abs.add_operator("*");} |
 /* Complex Statements and Condition */ 
 
 if_stmt: 'IF' 
-{
-  tree.enterScope("BLOCK", ++block_number);
-  ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*block_number)));
-  if_label = 2*block_number + 1;
-} 
-'(' cond ')' decl stmt_list{ir_list.addLast(new IRNode("JUMP",null,null,"$T"+if_label));}
-else_part 'ENDIF' {
-	ir_list.addLast(new IRNode("LABEL",null,null, "label"+if_label));
-	tree.exitScope();};
+        {
+          tree.enterScope("BLOCK", ++block_number);
+          ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*tree.current_scope.block_number)));
+          if_label.push(2*tree.current_scope.block_number + 1);
+        } 
+        '(' cond ')' 
+        decl 
+        stmt_list {ir_list.addLast(new IRNode("JUMP",null,null,tempString+if_label.getFirst()));}
+        else_part 
+        'ENDIF' {
+          	ir_list.addLast(new IRNode("LABEL",null,null, "label"+if_label.pop()));
+          	tree.exitScope();
+          }
+;
 
-else_part: 'ELSIF' {tree.enterScope("BLOCK", ++block_number); new_node.result = "$T"+(block_number*2+1);
+else_part: 'ELSIF' {tree.enterScope("BLOCK", ++block_number); new_node.result = tempString+(tree.current_scope.block_number*2+1);
                     ir_list.addLast(new_node);
                     } 
 '(' cond ')' {}
   
-  decl stmt_list 
+  decl 
+  stmt_list 
   {
     tree.exitScope();
   }
   else_part | ; //empty
 
 cond: {
-      abs = new AbstractSyntaxTree($cond.getText, reg_number, tree.current_scope);
+      abs = new AbstractSyntaxTree(reg_number, tree.current_scope);
+      }      
     expr 
       {new_node = new IRNode(null, null, null, null);
-       abs.end();ir_list.addAll(abs.ir_list); reg_number = abs.getTempCount();
+       abs.setType($expr.text); abs.end(); ir_list.addAll(abs.ir_list); reg_number = abs.getTempCount();
        new_node.op1 = abs.root.value;} 
     
     compop 
-      {abs = new AbstractSyntaxTree($cond.getText, reg_number, tree.current_scope);}
+      {abs = new AbstractSyntaxTree(reg_number, tree.current_scope);}
     expr
-      {abs.end();ir_list.addAll(abs.ir_list); reg_number = abs.getTempCount();
-       new_node.op2 = abs.root.value; new_node.result = "$T" + "label"+(2*block_number+1);}  
+      {abs.setType($expr.text); abs.end();ir_list.addAll(abs.ir_list); reg_number = abs.getTempCount();
+       new_node.op2 = abs.root.value; new_node.result = tempString + "label"+(2*tree.current_scope.block_number+1);}  
 | 
-'TRUE' {ir_list.addLast(new IRNode(STOREI, 0, null, "$T" + (++reg_number));
-        ir_list.addLast(new IRNode(STOREI, 1, null, "$T" + (++reg_number)); 
-        new_node = new IRNode(EQ, "$T" + reg_number, "$T" + (reg_number-1), "label"+(2*block_number+1));
+'TRUE' {
+        ir_list.addLast(new IRNode("STOREI", "0", null, tempString + (++reg_number)));
+        ir_list.addLast(new IRNode("STOREI", "1", null, tempString + (++reg_number))); 
+        new_node = new IRNode("EQ", tempString + reg_number, tempString + (reg_number-1), "label"+(2*tree.current_scope.block_number+1));
       }
 | 
-'FALSE'{ir_list.addLast(new IRNode(STOREI, 1, null, "$T" + (++reg_number));
-        ir_list.addLast(new IRNode(STOREI, 1, null, "$T" + (++reg_number)); 
-        new_node = new IRNode(EQ, "$T" + reg_number, "$T" + (reg_number-1), "label"+(2*block_number+1));
+'FALSE'{
+        ir_list.addLast(new IRNode("STOREI", "1", null, tempString + (++reg_number)));
+        ir_list.addLast(new IRNode("STOREI", "1", null, tempString + (++reg_number))); 
+        new_node = new IRNode("EQ", tempString + reg_number, tempString + (reg_number-1), "label"+(2*tree.current_scope.block_number+1));
       }
 ;
 
@@ -207,12 +218,12 @@ compop:
 do_while_stmt: 'DO' 
 {
   tree.enterScope("BLOCK", ++block_number);
-  ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*block_number)));
+  ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*tree.current_scope.block_number)));
 }
 decl stmt_list 'WHILE' '(' cond ')' ';' 
 {
-  ir_list.addLast(new IRNode("JUMP", null, null, "label"+(2*block_number)));
-  ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*block_number+1)));
+  ir_list.addLast(new IRNode("JUMP", null, null, "label"+(2*tree.current_scope.block_number)));
+  ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*tree.current_scope.block_number+1)));
   tree.exitScope();  
 };
 
