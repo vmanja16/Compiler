@@ -112,6 +112,10 @@ class AbstractSyntaxTree{
 		}
 		updateRoot();
 		post_order(root);
+		
+		/* DEALING WITH THE ROOT! */
+
+		// Implies that this is part of a conditional, not an assignment
 		if (lhs == null){
 			// Store the constant in a Temp for comparison! :-)
 			if ( (!root.value.contains("$")) && (table.getSymbol(root.value) == null) ){
@@ -119,9 +123,18 @@ class AbstractSyntaxTree{
 			}
 			return;
 		}
-		ir_list.addLast(new IRNode("STORE"+type, root.value, null, lhs.name));
-		table.addTempReg(lhs.name, getTempCount());
 
+		// check if rhs is just a symbol (can't assign directly!)!
+		if (table.getSymbol(root.value) != null){
+			ir_list.addLast(new IRNode("STORE"+type, root.value, null, getNewTemp()) );			
+			table.addTempReg(root.value, getTempCount());
+			ir_list.addLast(new IRNode("STORE"+type, getLatestTemp(), null, lhs.name));
+		}
+		// else just assign it to lhs
+		else{
+			ir_list.addLast(new IRNode("STORE"+type, root.value, null, lhs.name));
+			table.addTempReg(lhs.name, getTempCount());
+		}
 	}
 	private void updateRoot(){
 		if (!expression_stack.isEmpty()){
