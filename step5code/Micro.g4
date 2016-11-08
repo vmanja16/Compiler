@@ -9,7 +9,8 @@ grammar Micro;
       public IRList ir_list = new IRList();  
       public AbstractSyntaxTree abs;
       public int reg_number = 0;
-      public IRNode new_node;
+      public IRNode new_node, extra_node;
+      int old_node_index;
       public String tempString = IRNode.getTempPrefix();
 }
 program: 'PROGRAM' id 
@@ -154,12 +155,12 @@ mulop: '*'{abs.add_operator("*");} |
 if_stmt: 'IF' 
         {
           tree.enterScope("BLOCK", ++block_number);
-          ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*tree.current_scope.block_number)));
+          //ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*tree.current_scope.block_number)));
           if_label.push(2*tree.current_scope.block_number + 1);
         } 
-        '(' cond ')' 
+        '(' cond ')' {ir_list.addLast(new_node); old_node_index = ir_list.size()-1;}
         decl 
-        stmt_list {ir_list.addLast(new IRNode("JUMP",null,null,tempString+if_label.getFirst()));}
+        stmt_list {ir_list.addLast(new IRNode("JUMP",null,null,"label"+if_label.getFirst()));}
         else_part 
         'ENDIF' {
           	ir_list.addLast(new IRNode("LABEL",null,null, "label"+if_label.pop()));
@@ -167,63 +168,72 @@ if_stmt: 'IF'
           }
 ;
 
-else_part: 'ELSIF' {tree.enterScope("BLOCK", ++block_number); new_node.result = tempString+(tree.current_scope.block_number*2+1);
-                    ir_list.addLast(new_node);
-                    } 
-'(' cond ')' {}
-  
-  decl 
-  stmt_list 
-  {
-    tree.exitScope();
-  }
-  else_part | ; //empty
+else_part: 
+    'ELSIF' {
+              tree.enterScope("BLOCK", ++block_number);
+              ir_list.replace(old_node_index, "label"+ (2*tree.current_scope.block_number));
+              ir_list.addLast(new IRNode("LABEL", null, null, "label" + (2*tree.current_scope.block_number) ));
+    } 
+    '(' cond ')' {
+      ir_list.addLast(new_node); old_node_index = ir_list.size()-1;
+    }
+    
+    decl 
+    stmt_list{ir_list.addLast(new IRNode("JUMP",null,null,"label"+if_label.getFirst()));} 
+    {
+      tree.exitScope();
+    }
+    else_part |  
+; //empty
 
-cond: {
-      abs = new AbstractSyntaxTree(reg_number, tree.current_scope);
-      }      
+cond: 
+    {abs = new AbstractSyntaxTree(reg_number, tree.current_scope);}      
     expr 
       {new_node = new IRNode(null, null, null, null);
        abs.setType($expr.text); abs.end(); ir_list.addAll(abs.ir_list); reg_number = abs.getTempCount();
        new_node.op1 = abs.root.value;} 
     
-    compop 
+    compop {new_node.opcode+=abs.type;}
       {abs = new AbstractSyntaxTree(reg_number, tree.current_scope);}
     expr
       {abs.setType($expr.text); abs.end();ir_list.addAll(abs.ir_list); reg_number = abs.getTempCount();
-       new_node.op2 = abs.root.value; new_node.result = tempString + "label"+(2*tree.current_scope.block_number+1);}  
-| 
-'TRUE' {
-        ir_list.addLast(new IRNode("STOREI", "0", null, tempString + (++reg_number)));
-        ir_list.addLast(new IRNode("STOREI", "1", null, tempString + (++reg_number))); 
-        new_node = new IRNode("EQ", tempString + reg_number, tempString + (reg_number-1), "label"+(2*tree.current_scope.block_number+1));
-      }
-| 
-'FALSE'{
-        ir_list.addLast(new IRNode("STOREI", "1", null, tempString + (++reg_number)));
-        ir_list.addLast(new IRNode("STOREI", "1", null, tempString + (++reg_number))); 
-        new_node = new IRNode("EQ", tempString + reg_number, tempString + (reg_number-1), "label"+(2*tree.current_scope.block_number+1));
-      }
+       new_node.op2 = abs.root.value; 
+       new_node.result = "label"+ if_label.getFirst();
+      }  
+    | 
+    'TRUE' {
+            ir_list.addLast(new IRNode("STOREI", "0", null, tempString + (++reg_number)));
+            ir_list.addLast(new IRNode("STOREI", "1", null, tempString + (++reg_number))); 
+            new_node = new IRNode("EQI", tempString + reg_number, tempString + (reg_number-1), "label"+ if_label.getFirst() );
+          }
+    | 
+    'FALSE'{
+            ir_list.addLast(new IRNode("STOREI", "1", null, tempString + (++reg_number)));
+            ir_list.addLast(new IRNode("STOREI", "1", null, tempString + (++reg_number))); 
+            new_node = new IRNode("EQI", tempString + reg_number, tempString + (reg_number-1), "label"+ if_label.getFirst());
+          }
 ;
 
 compop: 
-'<'  {new_node.opcode = "GE";}  | 
-'>'  {new_node.opcode = "LE";} | 
-'='  {new_node.opcode = "NE";} | 
-'!=' {new_node.opcode = "EQ";} |
-'<=' {new_node.opcode = "GT";} |
-'>=' {new_node.opcode = "LT";}
-  ;
+  '<'  {new_node.opcode = "GE";}  | 
+  '>'  {new_node.opcode = "LE";} | 
+  '='  {new_node.opcode = "NE";} | 
+  '!=' {new_node.opcode = "EQ";} |
+  '<=' {new_node.opcode = "GT";} |
+  '>=' {new_node.opcode = "LT";}
+;
 
 do_while_stmt: 'DO' 
 {
   tree.enterScope("BLOCK", ++block_number);
   ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*tree.current_scope.block_number)));
+  if_label.push(2*tree.current_scope.block_number+1);
 }
 decl stmt_list 'WHILE' '(' cond ')' ';' 
 {
-  ir_list.addLast(new IRNode("JUMP", null, null, "label"+(2*tree.current_scope.block_number)));
-  ir_list.addLast(new IRNode("LABEL", null, null, "label"+(2*tree.current_scope.block_number+1)));
+  ir_list.addLast(new_node);
+  ir_list.addLast(new IRNode("JUMP", null, null, "label"+2*tree.current_scope.block_number));
+  ir_list.addLast(new IRNode("LABEL", null, null, "label"+if_label.pop()));
   tree.exitScope();  
 };
 

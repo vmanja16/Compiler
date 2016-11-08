@@ -112,7 +112,13 @@ class AbstractSyntaxTree{
 		}
 		updateRoot();
 		post_order(root);
-		if (lhs == null){return;}
+		if (lhs == null){
+			// Store the constant in a Temp for comparison! :-)
+			if ( (!root.value.contains("$")) && (table.getSymbol(root.value) == null) ){
+				ir_list.addLast(new IRNode("STORE"+type, root.value, null, getNewTemp()));
+			}
+			return;
+		}
 		ir_list.addLast(new IRNode("STORE"+type, root.value, null, lhs.name));
 		table.addTempReg(lhs.name, getTempCount());
 

@@ -103,6 +103,61 @@ class IRNode extends Object{
 			case("var"):
 				list.addLast(new TinyNode("var", result, null));
 				return list;
+			case("LABEL"):
+				list.addLast(new TinyNode("label", result, null));
+				return list;
+			case("JUMP"):
+				list.addLast(new TinyNode("jmp", result, null));
+				return list;
+			// CONDITIONALS
+			case("EQI"):
+				list.addLast(new TinyNode("cmpi", tiny_op1, tiny_op2));
+				list.addLast(new TinyNode("jeq", result, null));
+				return list;
+			case("NEI"):
+				list.addLast(new TinyNode("cmpi", tiny_op1, tiny_op2));
+				list.addLast(new TinyNode("jne", result, null));
+				return list;
+			case("LEI"):
+				list.addLast(new TinyNode("cmpi", tiny_op1, tiny_op2));
+				list.addLast(new TinyNode("jle", result, null));
+				return list;
+			case("LTI"):
+				list.addLast(new TinyNode("cmpi", tiny_op1, tiny_op2));
+				list.addLast(new TinyNode("jlt", result, null));
+				return list;
+			case("GEI"):
+				list.addLast(new TinyNode("cmpi", tiny_op1, tiny_op2));
+				list.addLast(new TinyNode("jge", result, null));
+				return list;
+			case("GTI"):
+				list.addLast(new TinyNode("cmpi", tiny_op1, tiny_op2));
+				list.addLast(new TinyNode("jgt", result, null));
+				return list;
+			case("EQF"):
+				list.addLast(new TinyNode("cmpr", tiny_op1, tiny_op2));
+				list.addLast(new TinyNode("jeq", result, null));
+				return list;
+			case("NEF"):
+				list.addLast(new TinyNode("cmpr", tiny_op1, tiny_op2));
+				list.addLast(new TinyNode("jne", result, null));
+				return list;
+			case("LEF"):
+				list.addLast(new TinyNode("cmpr", tiny_op1, tiny_op2));
+				list.addLast(new TinyNode("jle", result, null));
+				return list;
+			case("LTF"):
+				list.addLast(new TinyNode("cmpr", tiny_op1, tiny_op2));
+				list.addLast(new TinyNode("jlt", result, null));
+				return list;
+			case("GEF"):
+				list.addLast(new TinyNode("cmpr", tiny_op1, tiny_op2));
+				list.addLast(new TinyNode("jge", result, null));
+				return list;
+			case("GTF"):
+				list.addLast(new TinyNode("cmpr", tiny_op1, tiny_op2));
+				list.addLast(new TinyNode("jgt", result, null));
+				return list;
 			default: 
 				print();System.out.println("Didn't match!"); return null;
 		}
