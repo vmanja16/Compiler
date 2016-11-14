@@ -5,7 +5,6 @@ class IRNode extends Object{
 	public String op1;
 	public String op2;
 	public String result;
-	private HashMap<String, String> ir_tiny_map;
 
 	public static String getTempPrefix(){
 		return "$T";
@@ -31,11 +30,11 @@ class IRNode extends Object{
 	}
 
 	public TinyList toTiny(){
-			String tiny_op1 = tempToReg(op1);
-			String tiny_op2 = tempToReg(op2);
-			String tiny_res = tempToReg(result);
-			TinyList list = new TinyList();
-			TinyNode node1, node2;
+		String tiny_op1 = tempToReg(op1);
+		String tiny_op2 = tempToReg(op2);
+		String tiny_res = tempToReg(result);
+		TinyList list = new TinyList();
+		TinyNode node1, node2;
 		switch(opcode){
 			case("ADDI"):
 				node1 = new TinyNode("move", tiny_op1, tiny_res);
@@ -161,8 +160,26 @@ class IRNode extends Object{
 				list.addLast(new TinyNode("cmpr", tiny_op1, tiny_op2));
 				list.addLast(new TinyNode("jgt", result, null));
 				return list;
+			// FUNCTION Calls
+			case("LINK"):
+				list.addLast(new TinyNode("link", tiny_op1, null));
+				return list;
+			case("PUSH"):
+				list.addLast(new TinyNode("push", tiny_op1, null));
+				return list;
+			case("POP"):
+				list.addLast(new TinyNode("pop", tiny_op1, null));
+				return list;
+			case("RET"):
+				list.addLast(new TinyNode("unlnk", null, null));
+				list.addLast(new TinyNode("ret", null, null));
+				return list;
+			case("JSR"):
+				list.addLast(new TinyNode("jsr", tiny_op1, null));
+				return list;
 			default: 
-				print();System.out.println("Didn't match!"); return null;
+				return null;
+				//print();System.out.println("Didn't match!"); return null;
 		}
 	}
 

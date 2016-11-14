@@ -12,6 +12,7 @@ grammar Micro;
       public IRNode new_node, extra_node;
       public java.util.LinkedList<Integer> old_node_stack = new java.util.LinkedList<Integer>();
       public String tempString = IRNode.getTempPrefix();
+      public int links;
 }
 program: 'PROGRAM' id 
          'BEGIN' pgm_body 
@@ -23,7 +24,7 @@ program: 'PROGRAM' id
          
 id: IDENTIFIER;
 pgm_body: decl func_declarations; 
-decl: string_decl decl | var_decl decl | ; //empty
+decl: string_decl{links++;} decl | var_decl{links++;} decl | ; //empty
 
 /* Global String Declaration */
 
@@ -44,8 +45,8 @@ var_decl: var_type id_list ';'
   String[] strList = $id_list.text.split(",");
   for (String id : strList){
     Symbol symbol = new Symbol(id, $var_type.text, "0");
-    ir_list.addLast(new IRNode("var", null, null, id));
     tree.current_scope.add_symbol(symbol);
+    if (tree.isRoot()){ir_list.addLast(new IRNode("var", null, null, id));}
   }
 }
 ;
@@ -72,17 +73,28 @@ param_decl_tail: ',' param_decl param_decl_tail | ; // empty
 func_declarations: func_decl func_declarations | ; // empty
 
 func_decl: 'FUNCTION' any_type id 
+  {
+    tree.enterScope($id.text, 0);
+    ir_list.addLast(new IRNode("LABEL", null, null, $id.text));
+  }
+  ' (' 
+  param_decl_list
+  ')' 
+  'BEGIN' 
+  func_body 
+  'END'
 {
-  tree.enterScope($id.text, 0);
-}
-'(' param_decl_list ')' 'BEGIN' func_body 
-'END'
-{
+  ir_list.addLast(new IRNode("RET", null, null, null));
   tree.exitScope();
 }
 ;
 
-func_body: decl stmt_list;
+func_body: {links = 0;}
+  decl{
+    ir_list.addLast(new IRNode("LINK", null, null, Integer.toString(links)));
+  } 
+  stmt_list
+;
 
 /* Statement List */
 

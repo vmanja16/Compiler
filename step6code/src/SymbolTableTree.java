@@ -22,6 +22,12 @@ class SymbolTableTree{
     	if(errorCheck()){root.print();}
     }
 
+    public boolean isRoot(){
+        return (current_scope==root);
+    }
+    public boolean isRoot(SymbolTable table){
+        return (table==root);
+    }
 
     private boolean errorCheck(){
     	ArrayList<String> errorList = root.getErrors();
