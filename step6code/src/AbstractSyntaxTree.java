@@ -133,8 +133,15 @@ class AbstractSyntaxTree{
 		}
 		// else just assign it to lhs
 		else{
-			ir_list.addLast(new IRNode("STORE"+type, root.value, null, lhs.name));
-			table.addTempReg(lhs.name, getTempCount());
+			// check if lhs is local grab its local name
+			if (table.getLocal(lhs.name) != null){
+				ir_list.addLast(new IRNode("STORE"+type, root.value, null,
+								table.getLocal(lhs.name).value));
+			}
+			else{
+				ir_list.addLast(new IRNode("STORE"+type, root.value, null, lhs.name));
+				table.addTempReg(lhs.name, getTempCount());
+			}
 		}
 	}
 	private void updateRoot(){
@@ -189,8 +196,13 @@ class AbstractSyntaxTree{
 				if (table.getParameter(node.value) != null){ // is a paramter symbol
 					node.value = table.getParameter(node.value).value;
 					return null;
+				}
+				// LOCAL?
+				if (table.getLocal(node.value) != null){
+					node.value = table.getLocal(node.value).value;
+					return null;
 				}	
-				// GLOBAL/LOCAL VARS
+				// GLOBAL VAR
 				if (table.getSymbol(node.value) != null){ // is a global/local symbol
 					if (table.getTempReg(node.value)){
 						return null;

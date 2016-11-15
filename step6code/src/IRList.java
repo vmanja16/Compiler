@@ -14,6 +14,14 @@ class IRList extends LinkedList{
 		return ir_list;
 	}
 
+	public IRList callFunction(String function_name){
+		IRList ir_list = new IRList();
+		ir_list.addAll(pushRegistersList());
+		ir_list.add(IRNode.getJSRNode(function_name));
+		ir_list.addAll(popRegistersList());
+		return ir_list;
+	}
+
 	public IRList pushRegistersList(){
 		IRList ir_list = new IRList();
 		for (int i =0; i< 4; i++){

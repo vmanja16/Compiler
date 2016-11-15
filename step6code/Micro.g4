@@ -28,7 +28,7 @@ pgm_body:
   decl {ir_list.addAll(ir_list.callMainList());} // CALL MAIN (push + jsr)
   func_declarations; 
 
-decl: string_decl{links++;} decl | var_decl{links++;} decl | ; //empty
+decl: string_decl{links++;} decl | var_decl decl | ; //empty
 
 /* Global String Declaration */
 
@@ -48,6 +48,7 @@ var_decl: var_type id_list ';'
 {
   String[] strList = $id_list.text.split(",");
   for (String id : strList){
+    links++;
     Symbol symbol = new Symbol(id, $var_type.text, "0");
     if (tree.isRoot()){ir_list.addLast(new IRNode("var", null, null, id));}
     else{function.addLocal(symbol);}
@@ -124,7 +125,7 @@ assign_stmt: assign_expr ';';
 assign_expr: id {abs = new AbstractSyntaxTree(tree.current_scope.getSymbol($id.text), function.reg_count, tree.current_scope);}
 ':=' expr {abs.end();ir_list.addAll(abs.ir_list); function.reg_count = abs.getTempCount();}
 ;
-
+// TODO: ADD PARAMETER WRITES!
 read_stmt: 'READ' '(' id_list ')' ';'
 {
   String[] idList = $id_list.text.split(",");
@@ -182,7 +183,7 @@ call_expr: {ir_list.addLast(IRNode.getPushNode());} // push return value
   id 
   '(' 
   expr_list
-  ')' {ir_list.addLast(IRNode.getJSRNode($id.text));}
+  ')' {ir_list.addAll(ir_list.callFunction($id.text));}
 ;
 expr_list: expr expr_list_tail | ; // empty
 expr_list_tail: ',' expr expr_list_tail | ; // empty

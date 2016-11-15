@@ -80,6 +80,9 @@ class SymbolTable{
 	public Symbol getParameter(String symbol_name){
 		return function.getParameter(symbol_name);
 	}
+	public Symbol getLocal(String symbol_name){
+		return function.getLocal(symbol_name);
+	}
 /**
              REGISTER FUNCTIONS
 */	

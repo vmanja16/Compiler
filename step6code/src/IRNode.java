@@ -48,6 +48,7 @@ class IRNode extends Object{
 		if (op2 == null){two = "";}else{two = op2 + " ";}
 		if (result == null){res = "";}else{res = result;}
 		System.out.println(";" + opcode + " " + one + two + res);
+		if (opcode.equals("RET")){System.out.println();}
 	}
 
 /**
