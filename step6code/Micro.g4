@@ -49,8 +49,10 @@ var_decl: var_type id_list ';'
   String[] strList = $id_list.text.split(",");
   for (String id : strList){
     Symbol symbol = new Symbol(id, $var_type.text, "0");
-    tree.current_scope.add_symbol(symbol);
     if (tree.isRoot()){ir_list.addLast(new IRNode("var", null, null, id));}
+    else{function.addLocal(symbol);}
+    tree.current_scope.add_symbol(symbol);
+    
   }
 }
 ;
@@ -103,7 +105,8 @@ func_body: {links = 0;}
   decl{
     // TODO: INCLUDE TEMPS AND STATEMENT decls in # of links!
     ir_list.addLast(new IRNode("LINK", null, null, Integer.toString(links)));
-  } 
+
+  }
   stmt_list
 ;
 
@@ -117,6 +120,7 @@ base_stmt : assign_stmt | read_stmt | write_stmt | return_stmt;
 
 assign_stmt: assign_expr ';';
 // TODO: In ABS.end(): check if symbol is global or should be a function reg, THEN assign
+// TODO: Will a PARAM ever be on LHS??!?!?!
 assign_expr: id {abs = new AbstractSyntaxTree(tree.current_scope.getSymbol($id.text), function.reg_count, tree.current_scope);}
 ':=' expr {abs.end();ir_list.addAll(abs.ir_list); function.reg_count = abs.getTempCount();}
 ;
@@ -124,12 +128,17 @@ assign_expr: id {abs = new AbstractSyntaxTree(tree.current_scope.getSymbol($id.t
 read_stmt: 'READ' '(' id_list ')' ';'
 {
   String[] idList = $id_list.text.split(",");
-  String opcode = null;
+  String opcode = null; 
   for (String id : idList){
-    Symbol symbol = tree.current_scope.getSymbol(id);
+    // Change res if it's a local
+    String res = id; 
+    Symbol symbol = function.getLocal(id);
+    if (symbol==null){symbol = tree.current_scope.getSymbol(id);}
+    else{res = symbol.value;} 
+
     if (symbol.type.equals("INT")){opcode = "READI";}
     else if (symbol.type.equals("FLOAT")){opcode = "READF";}
-    IRNode ir_node = new IRNode(opcode, null, null, id);
+    IRNode ir_node = new IRNode(opcode, null, null, res);
     ir_list.addLast(ir_node); 
   }
 }
@@ -138,12 +147,17 @@ write_stmt: 'WRITE' '(' id_list ')' ';'
 {
   String[] idList = $id_list.text.split(",");
   String opcode = null;
-  for (String id : idList){
-    Symbol symbol = tree.current_scope.getSymbol(id);
+  for (String id : idList){    
+    // Change res if it's a local
+    String res = id; 
+    Symbol symbol = function.getLocal(id);
+    if (symbol==null){symbol = tree.current_scope.getSymbol(id);}
+    else{res = symbol.value;} 
+
     if (symbol.type.equals("INT")){opcode = "WRITEI";}
     else if (symbol.type.equals("FLOAT")){opcode = "WRITEF";}
     else if (symbol.type.equals("STRING")){opcode = "WRITES";}
-    IRNode ir_node = new IRNode(opcode, null, null, id);
+    IRNode ir_node = new IRNode(opcode, null, null, res);
     ir_list.addLast(ir_node); 
   }
 }
