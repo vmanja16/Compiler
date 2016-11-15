@@ -17,7 +17,7 @@ class SymbolTable{
 	public SymbolTable(String scope_name, SymbolTable parent, int block_number){
 		this.scope_name = scope_name;
 		this.parent = parent;
-		this.function = null;
+		if (this.parent != null){this.function = parent.function;}else{this.function = null;}
 		this.block_number = block_number;             
 		this.enter_label = 2 * block_number;
 		this.exit_label = this.enter_label + 1;
@@ -79,6 +79,9 @@ class SymbolTable{
 	}	
 	public Symbol getParameter(String symbol_name){
 		return function.getParameter(symbol_name);
+	}
+	public int getNumberOfParameters(){
+		return function.getNumberOfParameters();
 	}
 	public Symbol getLocal(String symbol_name){
 		return function.getLocal(symbol_name);

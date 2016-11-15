@@ -30,6 +30,15 @@ class SymbolTableTree{
     public boolean isRoot(SymbolTable table){
         return (table==root);
     }
+    public int getNumberOfParameters(String function_name){
+        SymbolTable table = root;
+        for (SymbolTable tab : root.tables){
+            if (tab.scope_name.equals(function_name)){
+                return tab.getNumberOfParameters();
+            }
+        }
+        return 0;
+    }
     private boolean errorCheck(){
     	ArrayList<String> errorList = root.getErrors();
     	if (errorList.isEmpty()){

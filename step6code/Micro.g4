@@ -14,6 +14,7 @@ grammar Micro;
       public int old_node_index = 0;
       public IRNode new_node, extra_node;
       public java.util.LinkedList<Integer> old_node_stack = new java.util.LinkedList<Integer>();
+      public java.util.LinkedList<AbstractSyntaxTree> abs_stack = new java.util.LinkedList<AbstractSyntaxTree>();
       public String tempString = IRNode.getTempPrefix();
       public int links;
       public Function function;
@@ -22,7 +23,7 @@ program: 'PROGRAM' id
          'BEGIN' pgm_body 
          'END' 
          ;
-         
+// STEP6:TODO: 1. return expr 2. push param expr 3. pop params/returnVal          
 id: IDENTIFIER;
 pgm_body: 
   decl {ir_list.addAll(ir_list.callMainList());} // CALL MAIN (push + jsr)
@@ -164,8 +165,10 @@ write_stmt: 'WRITE' '(' id_list ')' ';'
 }
 ;
 return_stmt : 
-  'RETURN' 
+  'RETURN' {abs = new AbstractSyntaxTree(function.reg_count, tree.current_scope);}
   expr{
+    abs.setType($expr.text); abs.is_return_statement = true; abs.end(); ir_list.addAll(abs.ir_list); function.reg_count = abs.getTempCount();
+    ir_list.addLast(new IRNode("STORE"+abs.type, tempString+function.reg_count, null, function.getReturnVal())); // Store latest temp on stack as return value
     ir_list.addLast(IRNode.getReturnNode());
   }
  ';'
@@ -177,16 +180,39 @@ expr: expr_prefix factor;
 expr_prefix: expr_prefix factor addop | ; // empty
 factor: factor_prefix postfix_expr;
 factor_prefix: factor_prefix postfix_expr mulop | ; //empty
-postfix_expr: primary | call_expr; // TODO: old_abs and new abs since we need to make one in the middle of another for funcCall
+postfix_expr: primary | call_expr;
 
 call_expr: {ir_list.addLast(IRNode.getPushNode());} // push return value 
   id 
-  '(' 
+  '(' // WHAT IF PARAMETER is a FUNCTION CALL?!?!?
+      {abs_stack.push(abs); function.reg_count = abs.getTempCount();} // update func regcount
   expr_list
-  ')' {ir_list.addAll(ir_list.callFunction($id.text));}
+      {abs = abs_stack.pop();} // update abs regcount
+  ')' {
+        // parameters were pushed from expr_list
+        ir_list.addAll(ir_list.callFunction($id.text)); //push r, jsr, pop r
+        // Pop parameters
+        for(int i=0; i< tree.getNumberOfParameters($id.text); i++){ir_list.addLast(IRNode.getPopNode());}
+        // pop and add ret value to abs
+        String ret_value = tempString + Integer.toString(++function.reg_count);
+        ir_list.addLast(IRNode.getPopNode(ret_value));
+        abs.setTempCount(function.reg_count);
+        abs.add_operand(ret_value);
+      }
 ;
-expr_list: expr expr_list_tail | ; // empty
-expr_list_tail: ',' expr expr_list_tail | ; // empty
+expr_list: { abs = new AbstractSyntaxTree(function.reg_count, tree.current_scope); abs.is_function_call = true;} //is_f_c not functional yet lol
+         expr { abs.setType($expr.text); abs.end(); ir_list.addAll(abs.ir_list); function.reg_count = abs.getTempCount();
+                ir_list.addLast(IRNode.getPushNode(abs.root.value)); // push the parameter!
+              }
+           expr_list_tail | 
+; // empty
+
+expr_list_tail: ',' {abs = new AbstractSyntaxTree(function.reg_count, tree.current_scope); abs.is_function_call = true;}
+         expr { abs.setType($expr.text); abs.end(); ir_list.addAll(abs.ir_list); function.reg_count = abs.getTempCount();
+                ir_list.addLast(IRNode.getPushNode(abs.root.value)); // push the parameter!
+              } 
+          expr_list_tail | 
+; // empty
 
 primary: '('   {abs.open_expr();}
   expr ')'     {abs.close_expr();} | 
@@ -245,13 +271,13 @@ cond:
     {abs = new AbstractSyntaxTree(function.reg_count, tree.current_scope);}      
     expr 
       {new_node = new IRNode(null, null, null, null);
-       abs.setType($expr.text); abs.end(); ir_list.addAll(abs.ir_list); function.reg_count = abs.getTempCount();
+       abs.setType($expr.text); abs.is_conditional_lhs=true; abs.end(); ir_list.addAll(abs.ir_list); function.reg_count = abs.getTempCount();
        new_node.op1 = abs.root.value;} 
     
     compop {new_node.opcode+=abs.type;}
       {abs = new AbstractSyntaxTree(function.reg_count, tree.current_scope);}
     expr
-      {abs.setType($expr.text); abs.end();ir_list.addAll(abs.ir_list); function.reg_count = abs.getTempCount();
+      {abs.setType($expr.text); abs.is_conditional_rhs=true; abs.end(); ir_list.addAll(abs.ir_list); function.reg_count = abs.getTempCount();
        new_node.op2 = abs.root.value; 
        new_node.result = "label"+ exit_stack.getFirst();
       }  

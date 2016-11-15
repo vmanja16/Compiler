@@ -11,6 +11,10 @@ class AbstractSyntaxTree{
 	public String type;
 	public SymbolTable table;
 	public String input;
+	public boolean is_return_statement;
+	public boolean is_function_call;
+	public boolean is_conditional_rhs;
+	public boolean is_conditional_lhs;
 
 	private static final Map<String, Integer> precedence_map = Collections.unmodifiableMap(
 		new HashMap<String, Integer>() {{
@@ -30,6 +34,10 @@ class AbstractSyntaxTree{
 		temp_count = new Integer(reg_number);
 		if (lhs.type.equals("FLOAT")){type = "F";}else{type = "I";}
 		this.table = table;
+		is_return_statement = false;
+		is_function_call = false;
+		is_conditional_lhs =false;
+		is_conditional_rhs = false;
 	}
 		public AbstractSyntaxTree(int reg_number, SymbolTable table){
 		this.lhs = null;
@@ -38,10 +46,15 @@ class AbstractSyntaxTree{
 		ir_list = new IRList();
 		root = null;
 		temp_count = new Integer(reg_number);
-		//if (lhs.type.equals("FLOAT")){type = "F";}else{type = "I";}
-		
-		//setType();
 		this.table = table;
+		is_return_statement = false;
+		is_function_call = false;
+		is_conditional_lhs =false;
+		is_conditional_rhs = false;	
+		
+	}
+	public void setTempCount(int count){
+		temp_count = count;
 	}
 
 	public void setType(String input ){
@@ -115,11 +128,18 @@ class AbstractSyntaxTree{
 		
 		/* DEALING WITH THE ROOT! */
 
-		// Implies that this is part of a conditional, not an assignment
+		// Implies that this is not an assignment
 		if (lhs == null){
-			// Store the constant in a Temp for comparison! :-)
-			if ( (!root.value.contains("$")) && (table.getSymbol(root.value) == null) ){
-				ir_list.addLast(new IRNode("STORE"+type, root.value, null, getNewTemp()));
+			// Store the constant in a Temp for comparison or for return :-)
+			if ( (!root.value.contains("$T")) && (table.getSymbol(root.value) == null) ){ // MODIFIED THIS TO $T instead of $S
+				if (!(is_function_call)){
+					if (is_conditional_lhs){if (root.value.contains("$")){return;}}
+
+					ir_list.addLast(new IRNode("STORE"+type, root.value, null, getNewTemp())); // function parameters don't need temps.. will be pushed straight from
+					if (is_conditional_rhs){
+						root.value = getLatestTemp();
+					}
+				} 
 			}
 			return;
 		}
@@ -191,13 +211,15 @@ class AbstractSyntaxTree{
 		else if (node.value.equals("-")){return new IRNode("SUB"+type, node.op1.value, node.op2.value, getNewTemp());} // sub
 		else if (node.value.equals("*")){return new IRNode("MULT"+type, node.op1.value, node.op2.value, getNewTemp());} // mul
 		else if (node.value.equals("/")){return new IRNode("DIV"+type, node.op1.value, node.op2.value, getNewTemp());} // div	
-		else {
+		else { // IS OPERAND
+				// TempReg
+				if (node.value.contains("$")){return null;}
 				// PARAMETER: Need to replace parameter name with its stack value!
-				if (table.getParameter(node.value) != null){ // is a paramter symbol
+				if (table.getParameter(node.value) != null){ // is a parameter symbol
 					node.value = table.getParameter(node.value).value;
 					return null;
 				}
-				// LOCAL?
+				// LOCAL VAR
 				if (table.getLocal(node.value) != null){
 					node.value = table.getLocal(node.value).value;
 					return null;

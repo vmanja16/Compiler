@@ -62,6 +62,9 @@ class Function{
 		}
 		return null;
 	}
+	public int getNumberOfParameters(){
+		return parameter_count;
+	}
 
 	/*public IRList pushParameterList(){
 		ir_list = new IRList();
