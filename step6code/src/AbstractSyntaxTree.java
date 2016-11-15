@@ -124,6 +124,7 @@ class AbstractSyntaxTree{
 			return;
 		}
 
+// TODO: deal with LHS not being global, but a parameter/local instead!
 		// check if rhs is just a symbol (can't assign directly!)!
 		if (table.getSymbol(root.value) != null){
 			ir_list.addLast(new IRNode("STORE"+type, root.value, null, getNewTemp()) );			
@@ -184,7 +185,13 @@ class AbstractSyntaxTree{
 		else if (node.value.equals("*")){return new IRNode("MULT"+type, node.op1.value, node.op2.value, getNewTemp());} // mul
 		else if (node.value.equals("/")){return new IRNode("DIV"+type, node.op1.value, node.op2.value, getNewTemp());} // div	
 		else {
-				if (table.getSymbol(node.value) != null){ // is a symbol
+				// PARAMETER: Need to replace parameter name with its stack value!
+				if (table.getParameter(node.value) != null){ // is a paramter symbol
+					node.value = table.getParameter(node.value).value;
+					return null;
+				}	
+				// GLOBAL/LOCAL VARS
+				if (table.getSymbol(node.value) != null){ // is a global/local symbol
 					if (table.getTempReg(node.value)){
 						return null;
 					}
@@ -194,15 +201,15 @@ class AbstractSyntaxTree{
 						return new IRNode("STORE"+type, node.value, null, getLatestTemp());
 					} 
 				}
-				else{ // is a literal
+				else{ // LITERAL
 					return new IRNode("STORE"+type, node.value, null, getNewTemp()); // store temp
 				}
 		}
 	}
-	private void Merge(ExpressionNode node, String replacment_value){
+	private void Merge(ExpressionNode node, String replacement_value){
 		node.op1 = null;
 		node.op2 = null;
-		node.value = replacment_value;
+		node.value = replacement_value;
 	}
 	private void post_order(ExpressionNode node){
 		if (node.op1 != null){

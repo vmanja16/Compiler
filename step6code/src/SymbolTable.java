@@ -9,16 +9,25 @@ class SymbolTable{
     ArrayList<SymbolTable> tables = new ArrayList<SymbolTable>();
     public HashMap<Symbol, Integer> TempRegMap = new HashMap<Symbol, Integer>();
     public int block_number;
+    public int enter_label;
+    public int exit_label;
 	public String scope_name;
 	public SymbolTable parent;
+	public Function function;
 	public SymbolTable(String scope_name, SymbolTable parent, int block_number){
 		this.scope_name = scope_name;
 		this.parent = parent;
+		this.function = null;
 		this.block_number = block_number;             
+		this.enter_label = 2 * block_number;
+		this.exit_label = this.enter_label + 1;
 	}
 /**
              BUILD FUNCTIONS
 */
+	public void add_function(Function function){
+		this.function = function;
+	}             
 	public void add_symbol(Symbol symbol){
 			declarationErrorCheck(symbol);
 			symbols.add(symbol);
@@ -68,6 +77,9 @@ class SymbolTable{
 		if (parent == null){return null;}
 		else return parent.getSymbol(symbol_name);
 	}	
+	public Symbol getParameter(String symbol_name){
+		return function.getParameter(symbol_name);
+	}
 /**
              REGISTER FUNCTIONS
 */	

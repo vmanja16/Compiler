@@ -6,25 +6,54 @@ class IRNode extends Object{
 	public String op2;
 	public String result;
 
-	public static String getTempPrefix(){
-		return "$T";
-	}
 	public IRNode(String opcode, String op1, String op2, String result){
 		this.opcode = opcode;
 		this.op1 = op1;
 		this.op2 = op2;
 		this.result = result;
 	}
+	public static IRNode getReturnNode(){
+		return new IRNode("RET", null, null, null);
+	}
+	public static IRNode getJSRNode(String label){
+		return new IRNode("JSR", null, null, label);
+	}
+	public static IRNode getJumpNode(int label_number){
+		return new IRNode("JUMP", null, null, "label"+label_number);
+	}
+	public static IRNode getLabelNode(int label_number){
+		return new IRNode("LABEL", null, null, "label"+label_number);
+	}
+	public static IRNode getLabelNode(String label){
+		return new IRNode("LABEL", null, null, label);
+	}
+	public static IRNode getPushNode(){
+		return new IRNode("PUSH", null, null, null);
+	}
+	public static IRNode getPushNode(String reg){
+		return new IRNode("PUSH", null, null, reg);
+	}
+	public static String getTempPrefix(){
+		return "$T";
+	}
 	public void print(){
-		String one, two;
+		String one, two, res;
 		if (op1 == null){one = "";}else{one = op1 + " ";}
 		if (op2 == null){two = "";}else{two = op2 + " ";}
-		System.out.println(";" + opcode + " " + one + two + result);
+		if (result == null){res = "";}else{res = result;}
+		System.out.println(";" + opcode + " " + one + two + res);
 	}
+
+/**
+					TINY CONVERSION
+*/	
 	public String tempToReg(String temp_var){
 		if (temp_var == null){return null;}
-		if (temp_var.startsWith("$")){
+		if (temp_var.startsWith("$T")){
 			return "r" +  new Integer(Integer.parseInt(temp_var.substring(2)) - 1 ).toString();
+		}
+		else if (temp_var.startsWith("$P")){
+			return "$" + ""; 
 		}
 		else{return temp_var;}
 	}
@@ -162,7 +191,7 @@ class IRNode extends Object{
 				return list;
 			// FUNCTION Calls
 			case("LINK"):
-				list.addLast(new TinyNode("link", tiny_op1, null));
+				list.addLast(new TinyNode("link", result, null));	
 				return list;
 			case("PUSH"):
 				list.addLast(new TinyNode("push", tiny_op1, null));
@@ -175,7 +204,10 @@ class IRNode extends Object{
 				list.addLast(new TinyNode("ret", null, null));
 				return list;
 			case("JSR"):
-				list.addLast(new TinyNode("jsr", tiny_op1, null));
+				list.addLast(new TinyNode("jsr", result, null));
+				return list;
+			case("HALT"):
+				list.addLast(new TinyNode(result, null, null));
 				return list;
 			default: 
 				return null;

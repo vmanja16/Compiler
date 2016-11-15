@@ -16,7 +16,7 @@ public class Micro {
     MicroParser parser = new MicroParser(tokens);
     
     ANTLRErrorStrategy es = new MicroErrorStrategy();
-    parser.setErrorHandler(es);
+    //parser.setErrorHandler(es);
 
   //  try 
    // {
@@ -24,7 +24,7 @@ public class Micro {
       parser.ir_list.print();
       TinyList tiny_list = (TinyList)parser.ir_list.toTiny();
       tiny_list.print();
-      System.out.println("sys halt");
+      //System.out.println("sys halt");
   /*    
     }
     catch (Exception e){
