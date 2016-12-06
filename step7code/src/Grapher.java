@@ -9,6 +9,7 @@ class Grapher{
 	public Function function;
 	public TinyList tiny_list;
 	public int link_count;
+	public IRNode link_node;
 /**
 				CONSTRUCTOR
 */
@@ -16,15 +17,18 @@ class Grapher{
 		this.ir_list = ir_list;
 		this.globals = globals;
 		this.function = function;
+		// add Fid and link_node ref
 		for(int i = 0; i < ir_list.size(); i++){
-			ir_list.get(i).fid = i+1;
+			IRNode node = ir_list.get(i);
+			node.fid = i+1;
+			if(node.opcode.equals("LINK")){link_node=node;}
 		}
-
+		// initialize registers 3-0
 		regs.put("r3", "");
 		regs.put("r2", "");
 		regs.put("r1", "");
 		regs.put("r0", "");
-		
+		// initialize lvars(the stack) with locals
 		for (int i=1; i <= function.local_count; i++){
 			lvars.put("$-"+i, "$L"+i);
 		}
@@ -179,7 +183,83 @@ CreatesGEN Sets based on opcodes
 		}
 	}
 
-public String tempToReg(String temp_var){
+
+
+
+	public String ensure(IRNode node, String operand){
+		if(operand==null){return null;}
+		String ensured_reg;
+		// check if already ensured!
+		for(String reg : regs.keySet()) {if (regs.get(reg).equals(operand)){return reg;}}
+		// allocate & return a reg
+		ensured_reg = allocate(node,operand);
+		// TODO: Generate load from opr into r
+		return ensured_reg;
+
+	}
+	public void free(IRNode node, String reg){
+		// TODO: if r dirty && live: store r on stack 
+		// TODO: else free r from stack (if it's there!)
+		regs.put(reg, "");
+	}
+	public String allocate(IRNode node, String operand){
+		if(operand==null){return null;}
+		String free_reg;
+		// return a free r if possible!
+		free_reg = getFreeReg();
+		if (free_reg != null){return free_reg;}
+		// choose r to free based on life_expectancy
+		free_reg = regToFree(node);
+		free(node, free_reg);
+		regs.put(free_reg, operand);
+		return free_reg;
+	}
+
+
+	public int calculateLifeExpectancy(IRNode node, String var){
+		int life_expectancy=0;
+		for(String s : node.out_set){
+			if(s.equals(var)){
+				life_expectancy++;
+				for(IRNode suc: node.successors){
+					life_expectancy += calculateLifeExpectancy(node, var);
+				}
+				return life_expectancy;
+			}
+		}
+		return life_expectancy;
+	}
+
+	String regToFree(IRNode node){
+		// ASSUMES ALL REGS ARE FULL
+		int temp_lf, lf=10000;
+		String lowest_life = "r0";
+		for(String reg : regs.keySet()){
+			temp_lf = calculateLifeExpectancy(node,regs.get(reg));
+			if (temp_lf < lf){
+				lf = temp_lf;
+				lowest_life = reg;
+			}
+		}
+		return lowest_life;
+	}
+
+
+/*
+	GENERAL OPERATION
+
+	Rx= ensure(A)
+	Ry= ensure(B)
+	if A deadafter this tuple, free(Rx)
+	if B deadafter this tuple, free(Ry)
+	Rz= allocate(C) //could use Rx or Ry
+	generate code for op
+*/
+
+
+/*
+
+	public String tempToReg(String temp_var){
 		if (temp_var == null){return null;}
 		if (temp_var.startsWith("$T")){
 						
@@ -191,8 +271,6 @@ public String tempToReg(String temp_var){
 	}
 
 
-
-/*
 	public TinyList IRTiny(IRNode node){
 		String tiny_op1 = tempToReg(op1);
 		String tiny_op2 = tempToReg(op2);

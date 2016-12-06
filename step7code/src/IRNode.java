@@ -55,8 +55,8 @@ class IRNode extends Object{
 	public static String getTempPrefix(){
 		return "$T";
 	}
-	public void addGen(String gen){if (gen!=null)if(gen.startsWith("$"))gen_set.add(gen);}
-	public void addKill(String kill){if (kill!=null)if(kill.startsWith("$"))kill_set.add(kill);}
+	public void addGen(String gen){if (gen!=null)if(!gen.substring(0,1).matches("[0-9]")) gen_set.add(gen);}
+	public void addKill(String kill){if (kill!=null)if(!kill.substring(0,1).matches("[0-9]"))kill_set.add(kill);}
 	public void print(){
 		String one, two, res;
 		if (op1 == null){one = "";}else{one = op1 + " ";}
