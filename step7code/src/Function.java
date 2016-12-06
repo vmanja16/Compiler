@@ -10,7 +10,9 @@ class Function{
 	public int parameter_count;
 	public int local_count;
 	public int return_val;
-	public Function(){
+	public String name;
+	public Function(String name){
+		this.name = name;
 		parameter_count = 0;
 		parameterList = new ArrayList<Symbol>();
 		localList = new ArrayList<Symbol>();
@@ -31,7 +33,7 @@ class Function{
 
 	public void addLocal(Symbol symbol){
 		local_count++;
-		symbol.value = "$-" + Integer.toString(local_count);
+		symbol.value = "$L" + Integer.toString(local_count);
 		localList.add(symbol);
 	}
 

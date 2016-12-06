@@ -6,8 +6,9 @@ class IRNode extends Object{
 	public String op2;
 	public String result;
 	public ArrayList<IRNode> successors, predecessors;
-	public ArrayList<String> gen_set, kill_set, in_set, out_set;
+	public HashSet<String> gen_set, kill_set, in_set, out_set;
 	public boolean start, end;
+	public int fid;
 
 	public IRNode(String opcode, String op1, String op2, String result){
 		this.opcode = opcode;
@@ -18,10 +19,11 @@ class IRNode extends Object{
 		this.end = false;
 		successors = new ArrayList<IRNode>();
 		predecessors = new ArrayList<IRNode>();
-		gen_set = new ArrayList<String>();
-		kill_set = new ArrayList<String>();
-		in_set = new ArrayList<String>();
-		out_set = new ArrayList<String>();
+		gen_set = new HashSet<String>();
+		kill_set = new HashSet<String>();
+		in_set = new HashSet<String>();
+		out_set = new HashSet<String>();
+		fid = 0;
 	}
 	public static IRNode getReturnNode(){
 		return new IRNode("RET", null, null, null);
@@ -53,16 +55,19 @@ class IRNode extends Object{
 	public static String getTempPrefix(){
 		return "$T";
 	}
-	public void addGen(String gen){if (gen!=null){gen_set.add(gen);}}
-	public void addKill(String kill){if (kill!=null){kill_set.add(kill);}}
+	public void addGen(String gen){if (gen!=null)if(gen.startsWith("$"))gen_set.add(gen);}
+	public void addKill(String kill){if (kill!=null)if(kill.startsWith("$"))kill_set.add(kill);}
 	public void print(){
 		String one, two, res;
 		if (op1 == null){one = "";}else{one = op1 + " ";}
 		if (op2 == null){two = "";}else{two = op2 + " ";}
 		if (result == null){res = "";}else{res = result;}
-		System.out.println(";" + opcode + " " + one + two + res);
-		
-		System.out.print("Gen:{ "); for(String gen : gen_set){System.out.print(gen + " ");}
+		//System.out.println(";" + opcode + " " + one + two + res);
+		System.out.print(";" + opcode + " " + one + two + res + "\t");
+		System.out.print("LiveOut::{ "); for(String o : out_set){System.out.print(o + ", "); }
+		System.out.println("}");
+		/*
+		System.out.print(";Gen:{ "); for(String gen : gen_set){System.out.print(gen + " ");}
 		System.out.print("}");
 		System.out.print("Kill:{ "); for(String kill : kill_set){System.out.print(kill + " ");}
 		System.out.print("}");
@@ -71,6 +76,7 @@ class IRNode extends Object{
 		System.out.print("Succ:{ "); for(IRNode succ : successors){System.out.print(succ.opcode + succ.result + ", ");}
 		System.out.print("}");
 		System.out.println();
+		*/
 		if (opcode.equals("RET")){System.out.println();}
 
 	}
@@ -82,6 +88,9 @@ class IRNode extends Object{
 		if (temp_var == null){return null;}
 		if (temp_var.startsWith("$T")){
 			return "r" +  new Integer(Integer.parseInt(temp_var.substring(2)) - 1 ).toString();
+		}
+		if(temp_var.startsWith("$L")){
+			return temp_var.replace('L','-'); 
 		}
 		else{return temp_var;}
 	}

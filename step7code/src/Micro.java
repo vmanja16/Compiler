@@ -11,6 +11,7 @@ public class Micro {
   
 
      ArrayList<IRList> function_list = new ArrayList<IRList>();
+    HashMap<String,Function> func_map = new HashMap<String,Function>();
 
      ArrayList<String> global_vars = new ArrayList<String>();
 
@@ -43,10 +44,17 @@ public class Micro {
       i++;
     }
 
+    // print out global IR
     for(Object node2 : global_list){
       ((IRNode)node2).print();
     }
+    global_list.toTiny().print();
 
+
+    // GET FUNCTION INFO from symbol Tree
+    for (SymbolTable table : parser.tree.root.tables){
+      func_map.put(table.scope_name, table.function);
+    }
 
     // CREATE FUNCTION LISTS
     IRList temp_list = new IRList();
@@ -60,17 +68,18 @@ public class Micro {
     // PASS FUNCTION LISTS TO GRAPHER!
     Grapher grapher;
     for(IRList list : function_list){
-      grapher = new Grapher(list, global_vars);
+      grapher = new Grapher(list, global_vars, func_map.get(list.get(0).result));
       grapher.calculateGen();
       grapher.calculateKill();
       grapher.calculateSuccessors();
       grapher.calculatePredecessors(); // pred dependent on succ
+      grapher.calculateLiveness();
     }
-
+    // print Function IR
     for(IRList list : function_list){
-      System.out.println("START FUNCTION");
+      System.out.println(";START FUNCTION");
       list.print();
-      System.out.println("END FUNCTION\n");
+      System.out.println(";END FUNCTION\n");
     }
 
 
