@@ -76,7 +76,7 @@ public class Micro {
       grapher.calculateSuccessors();
       grapher.calculatePredecessors(); // pred dependent on succ
       grapher.calculateLiveness();
-      list.print();
+     // list.print();
       grapher.allocateRegisters();
       System.out.println(";END FUNCTION\n");
     }
