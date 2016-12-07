@@ -68,13 +68,20 @@ public class Micro {
     // PASS FUNCTION LISTS TO GRAPHER!
     Grapher grapher;
     for(IRList list : function_list){
+      System.out.println(";START FUNCTION");
+      
       grapher = new Grapher(list, global_vars, func_map.get(list.get(0).result));
       grapher.calculateGen();
       grapher.calculateKill();
       grapher.calculateSuccessors();
       grapher.calculatePredecessors(); // pred dependent on succ
       grapher.calculateLiveness();
+      list.print();
+      grapher.allocateRegisters();
+      System.out.println(";END FUNCTION\n");
     }
+
+/*
     // print Function IR
     for(IRList list : function_list){
       System.out.println(";START FUNCTION");
@@ -82,7 +89,7 @@ public class Micro {
       System.out.println(";END FUNCTION\n");
     }
 
-
+*/
 
       //TinyList tiny_list = (TinyList)parser.ir_list.toTiny();
       //tiny_list.print();

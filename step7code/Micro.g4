@@ -80,7 +80,7 @@ func_decl:
   'FUNCTION' any_type id 
   {
     tree.enterScope($id.text, 0);
-    function = new Function();
+    function = new Function($id.text);
     tree.current_scope.add_function(function);
     ir_list.addLast(IRNode.getLabelNode($id.text));
     ir_list.getLast().start = true;
@@ -155,7 +155,7 @@ write_stmt: 'WRITE' '(' id_list ')' ';'
     if (symbol.type.equals("INT")){opcode = "WRITEI";}
     else if (symbol.type.equals("FLOAT")){opcode = "WRITEF";}
     else if (symbol.type.equals("STRING")){opcode = "WRITES";}
-    IRNode ir_node = new IRNode(opcode, null, null, res);
+    IRNode ir_node = new IRNode(opcode, res, null, null);
     ir_list.addLast(ir_node); 
   }
 }

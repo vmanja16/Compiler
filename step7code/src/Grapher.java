@@ -4,12 +4,13 @@ class Grapher{
 
 	public LinkedHashMap<String,String> regs = new LinkedHashMap<String,String>();
 	public LinkedHashMap<String,String> lvars = new LinkedHashMap<String,String>();
+	public LinkedHashMap<String,Boolean> dirty = new LinkedHashMap<String,Boolean>();
 	public IRList ir_list;
-	public ArrayList<String> globals;
+	public ArrayList<String> globals, normals;
 	public Function function;
 	public TinyList tiny_list;
 	public int link_count;
-	public IRNode link_node;
+	public TinyNode link_node;
 /**
 				CONSTRUCTOR
 */
@@ -21,49 +22,23 @@ class Grapher{
 		for(int i = 0; i < ir_list.size(); i++){
 			IRNode node = ir_list.get(i);
 			node.fid = i+1;
-			if(node.opcode.equals("LINK")){link_node=node;}
 		}
 		// initialize registers 3-0
-		regs.put("r3", "");
-		regs.put("r2", "");
-		regs.put("r1", "");
-		regs.put("r0", "");
+		regs.put("r3", ""); dirty.put("r3", false);
+		regs.put("r2", ""); dirty.put("r2", false);
+		regs.put("r1", ""); dirty.put("r1", false);
+		regs.put("r0", ""); dirty.put("r0", false);
 		// initialize lvars(the stack) with locals
-		for (int i=1; i <= function.local_count; i++){
+		for (int i=1; i <= function.local_count+1; i++){
 			lvars.put("$-"+i, "$L"+i);
 		}
 		link_count = function.local_count;
-
+		tiny_list = new TinyList();
+		normals = new ArrayList<String>();
+		normals.add("WRITES");normals.add("JSR");normals.add("WRITES"); normals.add("LABEL"); normals.add("HALT");
+		normals.add("JUMP");
 	}
 
-	public boolean full(){
-		return(
-			regs.get("r3").equals("") &&
-			regs.get("r2").equals("") &&
-			regs.get("r1").equals("") &&
-			regs.get("r0").equals("")
-		);
-	}
-
-	public String getSpillLocation(String temp_to_spill){
-		// look for lowest empty link # ($-#) 
-		for(String key : lvars.keySet()){
-			if(lvars.get(key).equals(temp_to_spill)){return key;}
-		}
-		// move temp to $-# and update lvars map 
-		link_count++;
-		String lc = "$-"+link_count; 
-		lvars.put(lc, temp_to_spill);
-		return lc;
-	}
-
-	public String getFreeReg(){
-		if (regs.get("r3").equals("")){return "r3";}
-		if (regs.get("r2").equals("")){return "r2";}
-		if (regs.get("r1").equals("")){return "r1";}
-		if (regs.get("r0").equals("")){return "r0";}
-		return null;
-	}
 
 /**
 				Calculates in_set and out_set: Does multiple passes to reach CONVERGENCE (a guess at this point) 
@@ -132,7 +107,7 @@ Creates KILL Sets based on opcodes
 				case("STOREF"):node.addKill(node.result); break;
 				case("READI"):node.addKill(node.result); break;
 				case("READF"):node.addKill(node.result); break;
-				case("POP"): node.addKill(node.op1); break;
+				case("POP"): node.addKill(node.result); break;
 				// FUNCTION Calls
 				default: break;
 			}
@@ -156,8 +131,8 @@ CreatesGEN Sets based on opcodes
 				case("DIVF"):node.addGen(node.op1); node.addGen(node.op2); break;
 				case("STOREI"):node.addGen(node.op1); node.addGen(node.op2); break;
 				case("STOREF"):node.addGen(node.op1); node.addGen(node.op2); break;
-				case("WRITEI"):node.addGen(node.result); break;
-				case("WRITEF"):node.addGen(node.result); break;
+				case("WRITEI"):node.addGen(node.op1); node.addGen(node.op2);break;
+				case("WRITEF"):node.addGen(node.op1); node.addGen(node.op2);break;
 				case("LEF"):node.addGen(node.op1); node.addGen(node.op2); break;
 				case("LEI"):node.addGen(node.op1); node.addGen(node.op2); break;
 				case("GEI"):node.addGen(node.op1); node.addGen(node.op2); break;
@@ -183,65 +158,147 @@ CreatesGEN Sets based on opcodes
 		}
 	}
 
+/** 
+		!REGISTER ALLOCATION FUNCTIONS!
+*/
 
-
-
+	public boolean full(){
+		return(
+			regs.get("r3").equals("") &&
+			regs.get("r2").equals("") &&
+			regs.get("r1").equals("") &&
+			regs.get("r0").equals("")
+		);
+	}
+	public String spillTemp(String temp_to_spill){
+		// look for existing link 
+		for(String key : lvars.keySet()){
+			if(lvars.get(key).equals(temp_to_spill)){return key;}
+		}
+		// look for empty link
+		for(String key : lvars.keySet()){
+			if(lvars.get(key).equals("")){
+				lvars.put(key, temp_to_spill);
+				return key;}
+		}
+		// move temp to $-# and update lvars map 
+		link_count++;
+		String lc = "$-"+link_count; 
+		lvars.put(lc, temp_to_spill);
+		return lc;
+	}
+	public String getFreeReg(){
+		if (regs.get("r3").equals("")){return "r3";}
+		if (regs.get("r2").equals("")){return "r2";}
+		if (regs.get("r1").equals("")){return "r1";}
+		if (regs.get("r0").equals("")){return "r0";}
+		return null;
+	}
+	public void freeFromStack(String var){
+		for (String sp: lvars.keySet()){
+			if (lvars.get(sp).equals(var)){lvars.put(sp, "");}
+		}
+	}
+	public String getMemoryLocation(String var){
+		for(String lvar: lvars.keySet()){
+			if(lvars.get(lvar).equals(var)){return lvar;}
+		}
+		// assume it's a parameter
+		return var;
+	}
 	public String ensure(IRNode node, String operand){
 		if(operand==null){return null;}
-		String ensured_reg;
+		String ensured_reg; if (operand.substring(0,1).matches("[0-9]") ){return operand;} // it's a constant
 		// check if already ensured!
 		for(String reg : regs.keySet()) {if (regs.get(reg).equals(operand)){return reg;}}
 		// allocate & return a reg
 		ensured_reg = allocate(node,operand);
-		// TODO: Generate load from opr into r
+		// Generate load from opr into r
+		tiny_list.addLast(new TinyNode("move", getMemoryLocation(operand), ensured_reg));
 		return ensured_reg;
-
 	}
 	public void free(IRNode node, String reg){
-		// TODO: if r dirty && live: store r on stack 
-		// TODO: else free r from stack (if it's there!)
-		regs.put(reg, "");
+		if(reg==null){return;}
+		String var = regs.get(reg);	
+		// if r dirty && live: store r on stack 
+		if (node.out_set.contains(var) && dirty.get(reg)) {
+			tiny_list.addLast(new TinyNode("move", reg, spillTemp(var)) );
+		}
+		// Var is dead: remove from stack!
+		else if (!node.out_set.contains(var)){freeFromStack(var);}
+		// if Var is live and clean, don't need to touch stack
+		// Free reg
+		regs.put(reg, ""); dirty.put(reg, false);
 	}
 	public String allocate(IRNode node, String operand){
 		if(operand==null){return null;}
+		if(operand.equals(function.getReturnVal()) ){return operand;}
 		String free_reg;
 		// return a free r if possible!
 		free_reg = getFreeReg();
-		if (free_reg != null){return free_reg;}
+		if (free_reg != null){
+			regs.put(free_reg, operand);
+			return free_reg;}
 		// choose r to free based on life_expectancy
 		free_reg = regToFree(node);
 		free(node, free_reg);
 		regs.put(free_reg, operand);
 		return free_reg;
 	}
-
-
 	public int calculateLifeExpectancy(IRNode node, String var){
 		int life_expectancy=0;
 		for(String s : node.out_set){
 			if(s.equals(var)){
 				life_expectancy++;
+				if(node.gen_set.contains(var)){return life_expectancy;}
 				for(IRNode suc: node.successors){
-					life_expectancy += calculateLifeExpectancy(node, var);
+					life_expectancy += calculateLifeExpectancy(suc, var);
 				}
 				return life_expectancy;
 			}
 		}
 		return life_expectancy;
 	}
-
-	String regToFree(IRNode node){
+	public String regToFree(IRNode node){
 		// ASSUMES ALL REGS ARE FULL
-		int temp_lf, lf=10000;
-		String lowest_life = "r0";
+		int temp_lf, lf=-1;
+		String used_last = null;
 		for(String reg : regs.keySet()){
+			// Can't free a current operand!
+			if (node.gen_set.contains(regs.get(reg))){continue;} 
+			// return dead reg if possible
+			if(!node.out_set.contains(regs.get(reg))){return reg;}
+			// look for farthest used gen
 			temp_lf = calculateLifeExpectancy(node,regs.get(reg));
-			if (temp_lf < lf){
+			if (temp_lf > lf){
 				lf = temp_lf;
-				lowest_life = reg;
+				used_last = reg;
 			}
 		}
-		return lowest_life;
+		return used_last;
+	}
+
+	public void allocateRegisters(){
+		String Rx, Ry, Rz; IRNode temp_node, node;
+		for( Object obj : ir_list){
+			node = (IRNode) obj;
+			if(normals.contains(node.opcode)){tiny_list.addAll(IRTiny(node)); continue;}
+
+			// OP 1
+			Rx = ensure(node, node.op1);
+			// OP 2
+			Ry = ensure(node, node.op2);
+			if(!node.out_set.contains(node.op1)){free(node, Rx);}
+			if(!node.out_set.contains(node.op2)){free(node, Ry);}
+			// Result
+			if(node.is_branch()){Rz = node.result;}
+			else{Rz = allocate(node, node.result);}
+			temp_node = new IRNode(node.opcode, Rx, Ry, Rz);
+			tiny_list.addAll(IRTiny(temp_node));
+			if (dirty.keySet().contains(Rz)) {dirty.put(Rz, true);}// mark dirty if Rz is register
+		}
+		tiny_list.get(1).op1 = Integer.toString(link_count);
+		tiny_list.print();
 	}
 
 
@@ -254,60 +311,49 @@ CreatesGEN Sets based on opcodes
 	if B deadafter this tuple, free(Ry)
 	Rz= allocate(C) //could use Rx or Ry
 	generate code for op
+
+	TODO: At the end, update LINK w/ link_count!
 */
 
 
-/*
-
-	public String tempToReg(String temp_var){
-		if (temp_var == null){return null;}
-		if (temp_var.startsWith("$T")){
-						
-		}
-		if(temp_var.startsWith("$L")){
-			return temp_var.replace('L','-'); 
-		}
-		else{return temp_var;}
-	}
-
-
 	public TinyList IRTiny(IRNode node){
-		String tiny_op1 = tempToReg(op1);
-		String tiny_op2 = tempToReg(op2);
-		String tiny_res = tempToReg(result);
+		String tiny_op1 = node.op1;
+		String tiny_op2 = node.op2;
+		String tiny_res = node.result;
+		String result = node.result;
 		TinyList list = new TinyList();
 		TinyNode node1, node2;
 		switch(node.opcode){
 			case("ADDI"):
-				list.addLast(new TinyNode("move", tiny_op1, tiny_res));
+				//list.addLast(new TinyNode("move", tiny_op1, tiny_res));
 				list.addLast(new TinyNode("addi", tiny_op2, tiny_res));
 				return list;
 			case("ADDF"):
-				list.addLast(new TinyNode("move", tiny_op1, tiny_res));
+				//list.addLast(new TinyNode("move", tiny_op1, tiny_res));
 				list.addLast(new TinyNode("addr", tiny_op2, tiny_res));
 				return list;
 			case("SUBI"):
-				list.addLast(new TinyNode("move", tiny_op1, tiny_res));
+				//list.addLast(new TinyNode("move", tiny_op1, tiny_res));
 				list.addLast(new TinyNode("subi", tiny_op2, tiny_res));
 				return list;
 			case("SUBF"):
-				list.addLast(new TinyNode("move", tiny_op1, tiny_res));
+				//list.addLast(new TinyNode("move", tiny_op1, tiny_res));
 				list.addLast(new TinyNode("subr", tiny_op2, tiny_res));
 				return list;
 			case("MULTI"):
-				list.addLast(new TinyNode("move", tiny_op1, tiny_res));
+				//list.addLast(new TinyNode("move", tiny_op1, tiny_res));
 				list.addLast(new TinyNode("muli", tiny_op2, tiny_res));
 				return list;
 			case("MULTF"):
-				list.addLast(new TinyNode("move", tiny_op1, tiny_res));
+				//list.addLast(new TinyNode("move", tiny_op1, tiny_res));
 				list.addLast(new TinyNode("mulr", tiny_op2, tiny_res));
 				return list;
 			case("DIVI"):
-				list.addLast(new TinyNode("move", tiny_op1, tiny_res));
+				//list.addLast(new TinyNode("move", tiny_op1, tiny_res));
 				list.addLast(new TinyNode("divi", tiny_op2, tiny_res));
 				return list;
 			case("DIVF"):
-				list.addLast(new TinyNode("move", tiny_op1, tiny_res));
+				//list.addLast(new TinyNode("move", tiny_op1, tiny_res));
 				list.addLast(new TinyNode("divr", tiny_op2, tiny_res));
 				return list;
 			case("STOREI"):
@@ -323,13 +369,13 @@ CreatesGEN Sets based on opcodes
 				list.add(new TinyNode("sys readr", result, null));
 				return list;
 			case("WRITEI"):
-				list.addLast(new TinyNode("sys writei", result, null));	
+				list.addLast(new TinyNode("sys writei", tiny_op1, null));	
 				return list;
 			case("WRITEF"):
-				list.addLast(new TinyNode("sys writer", result, null));
+				list.addLast(new TinyNode("sys writer", tiny_op1, null));
 				return list;
 			case("WRITES"):			
-				list.addLast(new TinyNode("sys writes", result, null));
+				list.addLast(new TinyNode("sys writes", tiny_op1, null));
 				return list;
 			case("var"):
 				list.addLast(new TinyNode("var", result, null));
@@ -400,17 +446,17 @@ CreatesGEN Sets based on opcodes
 				list.addLast(new TinyNode("push", tiny_op1, null));
 				return list;
 			case("POP"):
-				list.addLast(new TinyNode("pop", tiny_op1, null));
+				list.addLast(new TinyNode("pop", tiny_res, null));
 				return list;
 			case("RET"):
 				list.addLast(new TinyNode("unlnk", null, null));
 				list.addLast(new TinyNode("ret", null, null));
 				return list;
 			case("JSR"):
-				list.addLast(new TinyNode("pop", "r0", null));
-				list.addLast(new TinyNode("pop", "r1", null));
-				list.addLast(new TinyNode("pop", "r2", null));
-				list.addLast(new TinyNode("pop", "r3", null));
+				list.addLast(new TinyNode("push", "r0", null));
+				list.addLast(new TinyNode("push", "r1", null));
+				list.addLast(new TinyNode("push", "r2", null));
+				list.addLast(new TinyNode("push", "r3", null));
 				list.addLast(new TinyNode("jsr", result, null));
 				list.addLast(new TinyNode("pop", "r3", null));
 				list.addLast(new TinyNode("pop", "r2", null));
@@ -424,7 +470,7 @@ CreatesGEN Sets based on opcodes
 				return null;
 		}
 	}
-*/
+
 
 
 

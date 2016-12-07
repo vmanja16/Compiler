@@ -50,7 +50,7 @@ class IRNode extends Object{
 		return new IRNode("POP", null, null, null);
 	}
 	public static IRNode getPopNode(String reg){
-		return new IRNode("POP", reg, null, null);
+		return new IRNode("POP", null, null, reg);
 	}
 	public static String getTempPrefix(){
 		return "$T";
@@ -256,10 +256,10 @@ class IRNode extends Object{
 				list.addLast(new TinyNode("ret", null, null));
 				return list;
 			case("JSR"):
-				list.addLast(new TinyNode("pop", "r0", null));
-				list.addLast(new TinyNode("pop", "r1", null));
-				list.addLast(new TinyNode("pop", "r2", null));
-				list.addLast(new TinyNode("pop", "r3", null));
+				list.addLast(new TinyNode("push", "r0", null));
+				list.addLast(new TinyNode("push", "r1", null));
+				list.addLast(new TinyNode("push", "r2", null));
+				list.addLast(new TinyNode("push", "r3", null));
 				list.addLast(new TinyNode("jsr", result, null));
 				list.addLast(new TinyNode("pop", "r3", null));
 				list.addLast(new TinyNode("pop", "r2", null));

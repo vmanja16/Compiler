@@ -13,5 +13,9 @@ class TinyList extends LinkedList{
 			((TinyNode)node).print();
 		}
 	}
+
+	public TinyNode get(int index){
+		return (TinyNode) super.get(index);
+	}
 	
 }
