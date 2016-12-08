@@ -294,35 +294,61 @@ CreatesGEN Sets based on opcodes
 			Rx = ensure(node, node.op1);
 			// OP 2
 			Ry = ensure(node, node.op2);
-			// Free dead vars
-			//if(!node.out_set.contains(node.op1)){free(node, Rx);}
-			//if(!node.out_set.contains(node.op2)){free(node, Ry);}
 			// RESULT
 			if(node.is_branch()){Rz = node.result;}
 			else{Rz = allocate(node, node.result);}
+			// CHECK END OF  BASIC BLOCK!
+			if(isBasicBlock(node)){
+				saveGlobals();
+				saveDirtyLocals();
+			}
+			
 
-
-
+			// CREATE TINY
 			temp_node = new IRNode(node.opcode, Rx, Ry, Rz);
 			tiny_list.addAll(IRTiny(temp_node));
 			setDirty(Rz);
-
+			// FREE DEAD VARS
+			if(isBasicBlock(node)){
+				System.out.println(";BASIC BLOCK END!");
+				markEverythingFree();
+			}
 			if(!node.out_set.contains(node.op1)){free(node, Rx);}
 			if(!node.out_set.contains(node.op2)){free(node, Ry);}
-				
-			// free Globals at end of basic block!
-			//if(node.is_branch()){freeGlobals();}
+			
 
-			if(globals.contains(node.result)){
-				freeGlobals(); // A lot of work to keep glbl in reg
-				//free(node, Rz);
-			}
+
+
+			// DEAL WITH GLOBALS!
+
 			printRegisters();
 		}
+		// UPDATE LINK COUNT!
 		tiny_list.get(1).op1 = Integer.toString(link_count);
 		tiny_list.print();
 	}
-
+	void markEverythingFree(){
+		for (String key: regs.keySet()){
+			regs.put(key, "");
+			dirty.put(key, false);
+		}
+	}
+	public void saveDirtyLocals(){
+		for (String key: regs.keySet()){
+			String var = regs.get(key);
+			if(globals.contains(var)){continue;} // different functions for globals lol
+			if (dirty.get(key)){ // save dirty local
+				tiny_list.addLast(new TinyNode("move", key, spillTemp(var)));
+			}
+		}
+	}
+	public Boolean isBasicBlock(IRNode node){
+		if( (node.predecessors.size() > 1) || (node.successors.size() > 1) ) {return true;}
+		for(IRNode s : node.successors){
+			if(s.opcode.equals("LABEL")){return true;}
+		}
+		return false;
+	}
 	public void setDirty(String Rz){
 		// set reg dirty
 		if (dirty.keySet().contains(Rz)){dirty.put(Rz,true);}
@@ -336,19 +362,27 @@ CreatesGEN Sets based on opcodes
 			}
 		}
 	}
-	public void freeGlobals(){
+	public void saveGlobals(){
 		for(String key: regs.keySet()){
 			String var = regs.get(key);
 			if(globals.contains(var)){
 				// store global
 				tiny_list.add(new TinyNode("move", key, var));
+			}
+		}
+	}
+	public void killGlobals(){
+		for(String key: regs.keySet()){
+			String var = regs.get(key);
+			if(globals.contains(var)){
+				// store global
+				//tiny_list.add(new TinyNode("move", key, var));
 				// free reg
 				regs.put(key, "");
 				dirty.put(key, false);
 			}
 		}
 	}
-
 	public void printRegisters(){
 		System.out.print("\t");
 		for (String key : regs.keySet()){
@@ -447,6 +481,7 @@ CreatesGEN Sets based on opcodes
 				list.addLast(new TinyNode("label", result, null));
 				return list;
 			case("JUMP"):
+				saveGlobals(); saveDirtyLocals(); markEverythingFree();
 				list.addLast(new TinyNode("jmp", result, null));
 				return list;
 			// CONDITIONALS
@@ -509,12 +544,14 @@ CreatesGEN Sets based on opcodes
 				list.addLast(new TinyNode("pop", tiny_res, null));
 				return list;
 			case("RET"):
-				freeGlobals();
+				saveGlobals();
+				killGlobals();
 				list.addLast(new TinyNode("unlnk", null, null));
 				list.addLast(new TinyNode("ret", null, null));
 				return list;
 			case("JSR"):
-				freeGlobals();
+				saveGlobals();
+				killGlobals();
 				list.addLast(new TinyNode("push", "r0", null));
 				list.addLast(new TinyNode("push", "r1", null));
 				list.addLast(new TinyNode("push", "r2", null));
