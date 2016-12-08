@@ -35,8 +35,7 @@ class Grapher{
 		link_count = function.local_count;
 		tiny_list = new TinyList();
 		normals = new ArrayList<String>();
-		normals.add("WRITES");normals.add("JSR");normals.add("LABEL"); normals.add("HALT"); normals.add("LINK");
-		normals.add("JUMP");
+		normals.add("JSR");normals.add("LABEL"); normals.add("HALT"); normals.add("LINK"); normals.add("JUMP");
 	}
 
 
@@ -225,7 +224,8 @@ CreatesGEN Sets based on opcodes
 			tiny_list.addLast(new TinyNode("move", reg, spillTemp(var)) );
 		}
 		// Var is dead: remove from stack!
-		else if (!node.out_set.contains(var)){freeFromStack(var);}
+		else if (!node.out_set.contains(var)){
+			freeFromStack(var);}
 		// if Var is live and clean, don't need to touch stack
 		// Free reg
 		regs.put(reg, ""); dirty.put(reg, false);
@@ -290,6 +290,11 @@ CreatesGEN Sets based on opcodes
 			node = (IRNode) obj;
 			node.print();
 			if(normals.contains(node.opcode)){tiny_list.addAll(IRTiny(node)); continue;}
+			// special check on WRITES because it's normal, but CAN be the end of a basic block
+			if(node.opcode.equals("WRITES")){			
+				if(isBasicBlock(node)){saveGlobals(); saveDirtyLocals();}
+				tiny_list.addAll(IRTiny(node)); continue;
+			}
 			// OP 1
 			Rx = ensure(node, node.op1);
 			// OP 2
@@ -297,31 +302,28 @@ CreatesGEN Sets based on opcodes
 			// RESULT
 			if(node.is_branch()){Rz = node.result;}
 			else{Rz = allocate(node, node.result);}
-			// CHECK END OF  BASIC BLOCK!
-			if(isBasicBlock(node)){
-				saveGlobals();
-				saveDirtyLocals();
-			}
-			
 
+			// CHECK END OF  BASIC BLOCK!
+			if(isBasicBlock(node)){saveGlobals(); saveDirtyLocals();}
 			// CREATE TINY
 			temp_node = new IRNode(node.opcode, Rx, Ry, Rz);
 			tiny_list.addAll(IRTiny(temp_node));
 			setDirty(Rz);
+
 			// FREE DEAD VARS
 			if(isBasicBlock(node)){
 				System.out.println(";BASIC BLOCK END!");
+				if(!node.kill_set.isEmpty()){saveGlobals(); saveDirtyLocals();} // if Rz just got dirty, need to save!
 				markEverythingFree();
 			}
 			if(!node.out_set.contains(node.op1)){free(node, Rx);}
 			if(!node.out_set.contains(node.op2)){free(node, Ry);}
 			
 
-
-
 			// DEAL WITH GLOBALS!
 
 			printRegisters();
+			printStack();
 		}
 		// UPDATE LINK COUNT!
 		tiny_list.get(1).op1 = Integer.toString(link_count);
@@ -339,6 +341,7 @@ CreatesGEN Sets based on opcodes
 			if(globals.contains(var)){continue;} // different functions for globals lol
 			if (dirty.get(key)){ // save dirty local
 				tiny_list.addLast(new TinyNode("move", key, spillTemp(var)));
+				dirty.put(key, false);
 			}
 		}
 	}
@@ -368,6 +371,7 @@ CreatesGEN Sets based on opcodes
 			if(globals.contains(var)){
 				// store global
 				tiny_list.add(new TinyNode("move", key, var));
+				dirty.put(key, false);
 			}
 		}
 	}
@@ -391,9 +395,11 @@ CreatesGEN Sets based on opcodes
 		System.out.println();
 	}
 	public void printStack(){
-		for(String key: lvars.keySet()){
-			System.out.println("; " +key + "\t" + regs.get(key));	
+		System.out.print("\t");
+		for (String key : lvars.keySet()){
+			System.out.print("; "+key + " -> " + lvars.get(key));
 		}
+		System.out.println();
 	}
 /*
 	GENERAL OPERATION
