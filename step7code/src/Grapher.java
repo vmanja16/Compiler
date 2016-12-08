@@ -203,7 +203,7 @@ CreatesGEN Sets based on opcodes
 		if(operand==null){return null;}
 		String ensured_reg; 
 		// check if already ensured!
-		for(String reg : regs.keySet()) {if (regs.get(reg).equals(operand)){System.out.println(";"+reg + " matches " + operand); return reg;}}
+		for(String reg : regs.keySet()) {if (regs.get(reg).equals(operand)){System.out.println("\t;"+reg + " matches " + operand); return reg;}}
 		// allocate & return a reg
 		ensured_reg = allocate(node,operand);
 		// Generate load from opr into r
@@ -214,8 +214,14 @@ CreatesGEN Sets based on opcodes
 	public void free(IRNode node, String reg){
 		if(reg==null){return;}
 		String var = regs.get(reg);	
+		// if r dirty & global: store r in global
+		if(globals.contains(var) && dirty.get(reg)){
+			System.out.println("; spilling " + var + " from " + reg);
+			tiny_list.addLast(new TinyNode("move", reg, var));		
+		}
 		// if r dirty && live: store r on stack 
-		if (node.out_set.contains(var) && dirty.get(reg)) {
+		else if (node.out_set.contains(var) && dirty.get(reg)) {
+			System.out.println("; spilling " + var + " from " + reg);
 			tiny_list.addLast(new TinyNode("move", reg, spillTemp(var)) );
 		}
 		// Var is dead: remove from stack!
@@ -235,12 +241,16 @@ CreatesGEN Sets based on opcodes
 			return free_reg;}
 		// choose r to free based on life_expectancy
 		free_reg = regToFree(node);
+		System.out.println("\t;Replacing :" + free_reg +", "+regs.get(free_reg) +
+			" with " + operand);
 		free(node, free_reg);
 		regs.put(free_reg, operand);
 		return free_reg;
 	}
 	public int calculateLifeExpectancy(IRNode node, String var){
 		int life_expectancy=0;
+		if(node.opcode.equals("LABEL")){return 0;}
+		if(life_expectancy > 10){return 10;} // If it's 10 away, kill it
 		for(String s : node.out_set){
 			if(s.equals(var)){
 				life_expectancy++;
@@ -259,7 +269,10 @@ CreatesGEN Sets based on opcodes
 		String used_last = null;
 		for(String reg : regs.keySet()){
 			// Can't free a current operand!
-			if (node.gen_set.contains(regs.get(reg))){continue;} 
+			if (node.gen_set.contains(regs.get(reg))){continue;}
+			if(node.op1!=null){
+				if (regs.get(reg).equals(node.op1)){continue;}
+			}	 
 			// return dead reg if possible
 			if(!node.out_set.contains(regs.get(reg))){return reg;}
 			// look for farthest used gen
@@ -288,13 +301,22 @@ CreatesGEN Sets based on opcodes
 			if(node.is_branch()){Rz = node.result;}
 			else{Rz = allocate(node, node.result);}
 
-			if(!node.out_set.contains(node.op1)){free(node, Rx);}
-			if(!node.out_set.contains(node.op2)){free(node, Ry);}
+
 
 			temp_node = new IRNode(node.opcode, Rx, Ry, Rz);
 			tiny_list.addAll(IRTiny(temp_node));
 			setDirty(Rz);
-			//if (dirty.keySet().contains(Rz)) {dirty.put(Rz, true);}// mark dirty if Rz is register
+
+			if(!node.out_set.contains(node.op1)){free(node, Rx);}
+			if(!node.out_set.contains(node.op2)){free(node, Ry);}
+				
+			// free Globals at end of basic block!
+			//if(node.is_branch()){freeGlobals();}
+
+			if(globals.contains(node.result)){
+				freeGlobals(); // A lot of work to keep glbl in reg
+				//free(node, Rz);
+			}
 			printRegisters();
 		}
 		tiny_list.get(1).op1 = Integer.toString(link_count);
@@ -314,8 +336,21 @@ CreatesGEN Sets based on opcodes
 			}
 		}
 	}
+	public void freeGlobals(){
+		for(String key: regs.keySet()){
+			String var = regs.get(key);
+			if(globals.contains(var)){
+				// store global
+				tiny_list.add(new TinyNode("move", key, var));
+				// free reg
+				regs.put(key, "");
+				dirty.put(key, false);
+			}
+		}
+	}
 
 	public void printRegisters(){
+		System.out.print("\t");
 		for (String key : regs.keySet()){
 			System.out.print("; "+key + " -> " + regs.get(key));
 		}
@@ -474,10 +509,12 @@ CreatesGEN Sets based on opcodes
 				list.addLast(new TinyNode("pop", tiny_res, null));
 				return list;
 			case("RET"):
+				freeGlobals();
 				list.addLast(new TinyNode("unlnk", null, null));
 				list.addLast(new TinyNode("ret", null, null));
 				return list;
 			case("JSR"):
+				freeGlobals();
 				list.addLast(new TinyNode("push", "r0", null));
 				list.addLast(new TinyNode("push", "r1", null));
 				list.addLast(new TinyNode("push", "r2", null));

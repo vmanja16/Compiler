@@ -40,8 +40,7 @@ public class Micro {
     while(!node1.opcode.equals("LABEL")){
       global_list.addLast(node1);
       if(node1.opcode.equals("var")){global_vars.add(node1.result);}
-      node1 = parser.ir_list.get(i);
-      i++;
+      node1 = parser.ir_list.get(++i);
     }
 
     // print out global IR
