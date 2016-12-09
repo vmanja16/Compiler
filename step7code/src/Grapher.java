@@ -16,8 +16,20 @@ class Grapher{
 */
 	public Grapher(IRList ir_list, ArrayList<String> globals, Function function){
 		this.ir_list = ir_list;
-		this.globals = globals;
+		this.globals = new ArrayList<String>();
+		// Add globals
+		for (String glob : globals){
+			String x = glob;
+			this.globals.add(x);
+		}
 		this.function = function;
+		// eliminate global copies from this scope!
+		for(Symbol symbol : function.localList){
+			if (this.globals.contains(symbol.name)){
+				this.globals.remove(symbol.name);
+			}
+
+		}
 		// add Fid and link_node ref
 		for(int i = 0; i < ir_list.size(); i++){
 			IRNode node = ir_list.get(i);
