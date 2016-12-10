@@ -47,7 +47,7 @@ class Grapher{
 		link_count = function.local_count;
 		tiny_list = new TinyList();
 		normals = new ArrayList<String>();
-		normals.add("JSR");normals.add("LABEL"); normals.add("HALT"); normals.add("LINK"); normals.add("JUMP");
+		normals.add("JSR");normals.add("LABEL"); normals.add("HALT"); normals.add("LINK"); normals.add("JUMP"); normals.add("STR");
 	}
 
 
